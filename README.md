@@ -1,4 +1,4 @@
-# tidyTIVI 0.4.0
+# tidyTIVI 0.4.1
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.4.0.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.4.0/tidyTIVI-0.4.0.zip)
+or download [tidyTIVI-0.4.1.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.4.1/tidyTIVI-0.4.1.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -27,6 +27,10 @@ Python environment. Native export also requires the private provisioning below.
   selected profiles are included in one backup.
 - Optional combined mode uses one live playlist with prefixed profile groups.
 - Direct provider streams; no remote access to Dispatcharr is required.
+- Provider catch-up flags and retention are preserved per selected live stream
+  in both the backup and local M3U playlists. Replacement XC accounts use their
+  own advertised archive support. EPG history and actual archive playback still
+  depend on the guide feed and provider.
 - Curated VOD is enabled by default. Current enabled Dispatcharr movie/series
   categories, cleaned titles and assigned artwork are copied. VOD-only XC
   connections retain native Movies/Series and episode lookup without splitting
@@ -109,7 +113,7 @@ folder. Companion source and build instructions are maintained in
 
 ## Verification and limits
 
-Version 0.4.0 passed 20 automated tests. Export, restore, logos, profile categories,
+Version 0.4.1 passed 23 automated tests. Export, restore, logos, profile categories,
 live playback, populated EPG, native Movies/Series and episode lookup were checked
 on an unrooted Android TV emulator running TiviMate 5.3.3. Corrupted bundle
 downloads were rejected while preserving the prior installation. Physical Fire

@@ -4,6 +4,17 @@ from urllib.parse import quote, urlencode, urlparse
 from urllib.request import Request, urlopen
 
 
+def catchup_hours(properties):
+    """XC advertises archive availability separately from retention in days."""
+    try:
+        if str(properties.get('tv_archive', '0')).lower() not in ('1', 'true'):
+            return 0
+        days = int(properties.get('tv_archive_duration', 0))
+        return days * 24 if 0 < days <= 365 else 0
+    except (TypeError, ValueError):
+        return 0
+
+
 def apply_overrides(job, settings):
     for account in job['accounts']:
         aid = account['id']
@@ -20,7 +31,8 @@ def apply_overrides(job, settings):
         try:
             with urlopen(Request(url, headers={'User-Agent':'Mozilla/5.0'}),timeout=60) as response:
                 rows = json.load(response)
-            ids = {str(row['stream_id']) for row in rows}
+            live_rows = {str(row['stream_id']): row for row in rows}
+            ids = set(live_rows)
         except Exception:
             raise ValueError(f"Could not validate the replacement account for {account['name']}. Check its credentials and server.") from None
         missing = [c['name'] for c in channels if str(c['xc_id']) not in ids]
@@ -38,5 +50,6 @@ def apply_overrides(job, settings):
             if missing:raise ValueError(f"Replacement account for {account['name']} lacks {missing} curated {kind} IDs; export stopped.")
         account.update(server_url=server,username=username,password=password,overridden=True)
         for channel in channels:
+            channel['catchup_hours'] = catchup_hours(live_rows[str(channel['xc_id'])])
             channel['provider_url'] = server.rstrip('/')+'/live/'+quote(username,safe='')+'/'+quote(password,safe='')+'/'+str(channel['xc_id'])+'.ts'
     return job

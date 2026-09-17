@@ -22,3 +22,21 @@ class OverrideTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'curated movies IDs'):
                 apply_overrides(job,{'override_3':True,'export_username_3':'recipient','export_password_3':'new-password'})
         self.assertEqual(job['accounts'][0]['username'],'source')
+
+class CatchupTests(unittest.TestCase):
+    def test_archive_flag_and_days_are_both_required(self):
+        from accounts import catchup_hours
+        for props,want in [({'tv_archive':'1','tv_archive_duration':'3'},72),
+                           ({'tv_archive':1,'tv_archive_duration':1},24),
+                           ({'tv_archive':0,'tv_archive_duration':7},0),
+                           ({'tv_archive':1,'tv_archive_duration':None},0),
+                           ({'tv_archive':1,'tv_archive_duration':-1},0),({},0)]:
+            with self.subTest(props=props):self.assertEqual(catchup_hours(props),want)
+
+    def test_replacement_account_controls_archive_entitlement(self):
+        for flag,hours in [('0',0),('1',48)]:
+            job=OverrideTests().job();job['profiles'][0]['channels'][0]['catchup_hours']=72
+            rows=[{'stream_id':123,'tv_archive':flag,'tv_archive_duration':'2'}]
+            with patch('accounts.urlopen',return_value=io.BytesIO(json.dumps(rows).encode())):
+                apply_overrides(job,{'override_3':True,'export_username_3':'recipient','export_password_3':'new-password'})
+            self.assertEqual(job['profiles'][0]['channels'][0]['catchup_hours'],hours)

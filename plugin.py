@@ -53,6 +53,7 @@ def build_job(settings):
                         'include_subgroups': enabled(settings.get('include_subgroups', True)),
                         'provider_vod': enabled(settings.get('vod', True))},
            'warnings': []}
+    from .accounts import catchup_hours
     accounts, sources = {}, {}
     fallback_count = 0
     for profile in profiles:
@@ -97,6 +98,7 @@ def build_job(settings):
                 'epg': guide, 'account_id': account.pk, 'xc_id': stream.stream_id,
                 'provider_name': stream.name, 'provider_url': stream.url,
                 'provider_category_id': (stream.custom_properties or {}).get('category_id'),
+                'catchup_hours': catchup_hours(stream.custom_properties or {}),
                 'fallback_count': max(0, len(links) - 1)})
         channels.sort(key=lambda c: (float(c['number']), c['id']))
         if not channels:
