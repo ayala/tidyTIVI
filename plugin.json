@@ -1,0 +1,45 @@
+{
+  "name": "tidyTIVI",
+  "version": "0.4.0",
+  "description": "One curated TiviMate backup, complete country logos, recipient credentials and Dropbox updates.",
+  "author": "ayala",
+  "license": "MIT",
+  "min_dispatcharr_version": "v0.20.0",
+  "fields": [],
+  "actions": [
+    {
+      "id": "preview",
+      "label": "Preview selected profiles",
+      "button_label": "Preview",
+      "description": "Validate selected profiles and show only the EPG sources they use.",
+      "button_variant": "outline",
+      "button_color": "blue"
+    },
+    {
+      "id": "export_backups",
+      "label": "Export combined backup",
+      "button_label": "Export bundle",
+      "description": "Export all selected profiles together, with country logo folders and a companion update bundle.",
+      "button_variant": "filled",
+      "button_color": "blue"
+    },
+    {
+      "id": "export_job",
+      "label": "Export diagnostic job",
+      "button_label": "Export job",
+      "description": "Write a private curation job for diagnosis. This JSON file is not a TiviMate backup.",
+      "button_variant": "filled",
+      "button_color": "blue"
+    },
+    {
+      "id": "dropbox_connect",
+      "label": "Connect Dropbox",
+      "button_label": "Connect Dropbox",
+      "description": "Authorize Dropbox once, then export and upload to the same bundle path.",
+      "button_variant": "outline",
+      "button_color": "blue"
+    }
+  ],
+  "repo_url": "https://github.com/ayala/tidyTIVI",
+  "help_url": "https://github.com/ayala/tidyTIVI#readme"
+}

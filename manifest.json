@@ -1,0 +1,23 @@
+{
+  "registry_name": "tidyTIVI Plugin Repo",
+  "registry_url": "https://github.com/ayala/tidyTIVI",
+  "root_url": "https://raw.githubusercontent.com/ayala/tidyTIVI/refs/heads/main",
+  "plugins": [
+    {
+      "slug": "tidytivi",
+      "name": "tidyTIVI",
+      "description": "One curated TiviMate backup, complete country logos, recipient credentials and Dropbox updates.",
+      "author": "ayala",
+      "latest_version": "0.4.0",
+      "last_updated": "2026-09-17T08:09:57Z",
+      "license": "MIT",
+      "repo_url": "https://github.com/ayala/tidyTIVI",
+      "latest_url": "releases/v0.4.0/tidyTIVI-0.4.0.zip",
+      "latest_sha256": "e773bbd5b31037de47f0f8d7995d1dda0d9b1d6609d9762346034ab8bdce48e2",
+      "latest_md5": "24e04a7556ff491b36e6a7752e05c885",
+      "latest_size": 36,
+      "icon_url": "logo.png",
+      "min_dispatcharr_version": "v0.20.0"
+    }
+  ]
+}
