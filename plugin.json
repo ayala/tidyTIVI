@@ -1,6 +1,6 @@
 {
   "name": "tidyTIVI",
-  "version": "0.5.4",
+  "version": "0.5.5",
   "description": "One curated TiviMate backup, complete country logos, recipient credentials and Dropbox updates.",
   "author": "ayala",
   "license": "MIT",
@@ -35,7 +35,7 @@
       "id": "dropbox_connect",
       "label": "Connect Dropbox",
       "button_label": "Connect Dropbox",
-      "description": "Start Dropbox sign-in; no app registration or tunnel required.",
+      "description": "Recommended: click Docs on the tidyTIVI card to open the complete connection page.",
       "button_variant": "outline",
       "button_color": "blue"
     },
@@ -43,7 +43,7 @@
       "id": "dropbox_finish",
       "label": "Finish connection",
       "button_label": "Finish connection",
-      "description": "Complete sign-in using the one-time code saved in Settings.",
+      "description": "Legacy workflow: finish using the code saved in Settings. The Docs setup page has its own Finish connection button.",
       "button_variant": "outline",
       "button_color": "blue"
     },
@@ -60,6 +60,14 @@
       "label": "Dropbox status",
       "button_label": "Dropbox status",
       "description": "Show whether Dropbox authorization is saved.",
+      "button_variant": "outline",
+      "button_color": "blue"
+    },
+    {
+      "id": "companion_link",
+      "label": "Get companion download link",
+      "button_label": "Get companion link",
+      "description": "Find the existing Dropbox bundle link. Click Docs for a full copyable link.",
       "button_variant": "outline",
       "button_color": "blue"
     }

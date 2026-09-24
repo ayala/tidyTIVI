@@ -226,8 +226,9 @@ class Plugin:
              'help_text':'Update your Dropbox bundle after export. Keep its download link private: the bundle contains exported account credentials.'},
             {'id':'cloud_filename','label':'Bundle filename','type':'string','default':old.get('cloud_filename') or Path(old.get('dropbox_path') or '/tidytivi-latest.zip').name,
              'help_text':'Use a different .zip filename for each recipient. Updates retain the same download link.'},
-            {'id':'dropbox_guide','label':'Dropbox setup guide','type':'info',
-             'value':'Step-by-step instructions: https://github.com/ayala/tidyTIVI/blob/main/CLOUD-SETUP.md#plugin-users — users do not register an app or configure a tunnel.'},
+            {'id':'dropbox_guide','label':'First-time Dropbox setup','type':'info',
+             'value':'1. Save or close Settings, then click Docs on the tidyTIVI card. 2. Click Connect Dropbox to open authorization and approve access. 3. Paste the code from Dropbox on that same setup page and click Finish connection. If the tab does not open, use Open Dropbox or Copy the full link instead. Then enable Upload after export here and save. If Dropbox is already connected, skip these steps. Full guide: https://github.com/ayala/tidyTIVI/blob/main/CLOUD-SETUP.md#plugin-users'},
+            {'id':'companion_link_guide','label':'Already connected? Get your companion link','type':'info','value':'Save or close Settings, click Docs on the tidyTIVI card, then Get companion link. Copy it into the companion’s Connect screen or its phone QR setup page. Export with Upload after export enabled first if no link exists. You do not need to reconnect Dropbox.'},
             {'id':'dropbox_connection','label':'Dropbox connection','type':'info','value':connection_status(old)},
             {'id':'dropbox_auth_code','label':'One-time connection code','type':'string','input_type':'password','default':'',
              'help_text':'Recommended: close Settings and click Docs on the tidyTIVI card. The setup page opens Dropbox and accepts the code directly. This field is only for the legacy Actions workflow.'}
@@ -239,6 +240,10 @@ class Plugin:
     def run(self, action, params, context):
         settings = context.get('settings', {})
         try:
+            if action == 'companion_link':
+                from .dropbox_upload import companion_link
+                url = companion_link(settings)
+                return {'status':'ok','message':'Click Docs on the tidyTIVI card, then Get companion link to copy the full download link.','download_url':url,'file':url}
             if action in ('cloud_connect', 'dropbox_connect', 'dropbox_finish', 'dropbox_cancel'):
                 from .dropbox_upload import connect, cancel_connection, authorization_url
                 if action == 'dropbox_finish' and 'code' in params:

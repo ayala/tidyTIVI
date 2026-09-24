@@ -84,8 +84,8 @@ def connection_status(settings):
     if auth.get('access_token'):
         return 'A temporary Dropbox connection is saved. Use Connect Dropbox to authorize automatic renewal.'
     if auth.get('pending'):
-        return 'Waiting for Dropbox approval. Paste the one-time code, save settings, then click Connect Dropbox again.'
-    return 'Dropbox is not connected. Open Actions → Connect Dropbox.'
+        return 'Waiting for Dropbox approval. Click Docs on the tidyTIVI card, paste the one-time code on the setup page, then click Finish connection.'
+    return 'Dropbox is not connected. Click Docs on the tidyTIVI card to open the connection page.'
 
 
 def clear_code():
@@ -203,3 +203,30 @@ def upload_bundle(path, settings):
     link=links[0] if links else call('sharing/create_shared_link_with_settings',{'path':remote})
     parts=urlparse(link['url']);query=dict(parse_qsl(parts.query));query.pop('raw',None);query['dl']='1'
     return {'status':'ok','path':remote,'download_url':urlunparse(parts._replace(query=urlencode(query))), 'bytes':path.stat().st_size}
+
+
+def companion_link(settings):
+    """Read the existing share for the configured bundle; never create or upload one."""
+    from pathlib import PurePosixPath
+    remote = str(settings.get('dropbox_path') or '/tidytivi-latest.zip')
+    if settings.get('cloud_filename'):
+        name = str(settings['cloud_filename'])
+        if '/' in name or '\\' in name or not name.endswith('.zip'):
+            raise ValueError('Bundle filename must be a .zip filename without folders.')
+        remote = str(PurePosixPath(remote).parent / name)
+    if not remote.startswith('/') or '..' in remote.split('/'):
+        raise ValueError('Invalid Dropbox bundle path.')
+    token = access_token(settings)
+    try:
+        request = Request('https://api.dropboxapi.com/2/sharing/list_shared_links',
+                          data=json.dumps({'path':remote,'direct_only':True}).encode(),
+                          headers={'Authorization':'Bearer '+token,'Content-Type':'application/json'})
+        with urlopen(request, timeout=45) as response:
+            links = json.load(response).get('links', [])
+    except Exception:
+        raise ValueError('Could not retrieve the bundle link. Export with Upload after export enabled, then try again.') from None
+    if not links:
+        raise ValueError('No uploaded bundle link found for this filename. Export with Upload after export enabled first.')
+    parts = urlparse(links[0]['url'])
+    query = dict(parse_qsl(parts.query)); query.pop('raw', None); query['dl'] = '1'
+    return urlunparse(parts._replace(query=urlencode(query)))
