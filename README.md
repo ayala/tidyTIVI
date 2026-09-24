@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.3
+# tidyTIVI 0.5.4
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.3.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.3/tidyTIVI-0.5.3.zip)
+or download [tidyTIVI-0.5.4.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.4/tidyTIVI-0.5.4.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -58,9 +58,14 @@ bundle and download link private.
 ## Dropbox sync
 
 No app registration, public server address, or tunnel is needed for users.
-Open **Actions → Connect Dropbox** and follow the sign-in link. Approve access,
-copy Dropbox's one-time code into **Settings → One-time connection code**, and
-save. Then click **Actions → Finish connection**. Enable **Upload after export**
+Click **Docs** on the tidyTIVI card to open its local setup page. Click
+**Connect Dropbox**; Dropbox opens in another tab. If your browser blocks the tab,
+click **Open Dropbox** or use **Copy the full link instead**. Approve access,
+copy Dropbox’s one-time code into the setup page, and click **Finish connection**.
+The page uses your existing Dispatcharr login; it never needs a hardcoded server
+address or a tunnel. The **Setup guide** link opens the GitHub documentation.
+
+Enable **Upload after export**
 and choose a bundle filename. Future exports renew authorization automatically
 and overwrite the bundle while retaining its download link.
 

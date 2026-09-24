@@ -1,6 +1,6 @@
 {
   "name": "tidyTIVI",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "One curated TiviMate backup, complete country logos, recipient credentials and Dropbox updates.",
   "author": "ayala",
   "license": "MIT",
@@ -65,5 +65,5 @@
     }
   ],
   "repo_url": "https://github.com/ayala/tidyTIVI",
-  "help_url": "https://github.com/ayala/tidyTIVI/blob/main/CLOUD-SETUP.md#plugin-users"
+  "help_url": "/api/plugins/tidytivi/setup/"
 }

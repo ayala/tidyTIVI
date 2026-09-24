@@ -151,6 +151,8 @@ def summary(job):
 
 class Plugin:
     def __init__(self):
+        from .setup_page import install
+        install()
         # Remove the retired v0.5.0 callback when a running worker reloads us.
         try:
             import sys
@@ -168,6 +170,8 @@ class Plugin:
 
     @property
     def fields(self):
+        from .setup_page import install
+        install()
         from apps.channels.models import ChannelProfile
         fields = [{'id': f'profile_{p.pk}', 'label': f'Export {p.name}', 'type': 'boolean',
                    'default': False, 'help_text': 'Include enabled, visible channels from this profile.'}
@@ -226,7 +230,7 @@ class Plugin:
              'value':'Step-by-step instructions: https://github.com/ayala/tidyTIVI/blob/main/CLOUD-SETUP.md#plugin-users — users do not register an app or configure a tunnel.'},
             {'id':'dropbox_connection','label':'Dropbox connection','type':'info','value':connection_status(old)},
             {'id':'dropbox_auth_code','label':'One-time connection code','type':'string','input_type':'password','default':'',
-             'help_text':'First open Actions → Connect Dropbox. Approve access, paste the displayed code here and save. Then open Actions → Finish connection.'}
+             'help_text':'Recommended: close Settings and click Docs on the tidyTIVI card. The setup page opens Dropbox and accepts the code directly. This field is only for the legacy Actions workflow.'}
 
         ])
 
@@ -236,12 +240,18 @@ class Plugin:
         settings = context.get('settings', {})
         try:
             if action in ('cloud_connect', 'dropbox_connect', 'dropbox_finish', 'dropbox_cancel'):
-                from .dropbox_upload import connect, cancel_connection
+                from .dropbox_upload import connect, cancel_connection, authorization_url
+                if action == 'dropbox_finish' and 'code' in params:
+                    settings = dict(settings, dropbox_auth_code=str(params['code']))
                 message = cancel_connection(settings) if action == 'dropbox_cancel' else connect(settings, finish=action == 'dropbox_finish')
+                if action in ('cloud_connect', 'dropbox_connect'):
+                    url = authorization_url()
+                    return {'status':'ok','message':'Click Docs on the tidyTIVI card to open Dropbox setup. Approve access, paste the code there, and finish connecting.','authorization_url':url,'file':url}
                 return {'status':'ok','message':message}
             if action in ('cloud_status', 'dropbox_status'):
-                from .dropbox_upload import connection_status
-                return {'status':'ok','message':connection_status(settings)}
+                from .dropbox_upload import connection_status, authorization_url, read_auth
+                auth = read_auth()
+                return {'status':'ok','message':connection_status(settings),'connected':bool(auth.get('refresh_token') or auth.get('access_token')),'authorization_url':authorization_url()}
             if action not in ('preview', 'export_job', 'export_backups'):
                 return {'status': 'error', 'message': 'Unknown action.'}
             job = build_job(settings)

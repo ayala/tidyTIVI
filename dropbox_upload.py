@@ -99,6 +99,16 @@ def clear_code():
         cfg.save(update_fields=['settings'])
 
 
+def authorization_url():
+    pending = read_auth().get('pending', {})
+    if not pending or time.time() - pending.get('created_at', 0) > 1800:
+        return None
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(pending['verifier'].encode()).digest()).decode().rstrip('=')
+    return 'https://www.dropbox.com/oauth2/authorize?' + urlencode({
+        'client_id':pending['app_key'], 'response_type':'code', 'token_access_type':'offline',
+        'code_challenge':challenge, 'code_challenge_method':'S256'})
+
+
 def connect(settings, finish=None):
     with connection_lock():
         auth = migrate_auth(settings)

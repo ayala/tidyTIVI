@@ -1,3 +1,11 @@
+> **0.5.4 recommended connection flow:** Click **Docs** on the tidyTIVI card.
+> The local setup page provides **Connect Dropbox**, a clickable **Open Dropbox**
+> fallback, the full copyable URL, and a code field with **Finish connection**.
+> You must be signed in to Dispatcharr in that browser. Existing connections are
+> shown as connected and do not require another sign-in. The older Actions/code
+> field flow below remains compatible; the clipped notification is no longer
+> the only place to get the authorization link.
+
 # Dropbox connection
 
 ## Plugin users

@@ -10,7 +10,7 @@ meta=json.loads((root/'plugin.json').read_text()); version=meta['version']
 release=root/'releases'/('v'+version); release.mkdir(parents=True,exist_ok=True)
 archive=release/f'tidyTIVI-{version}.zip'
 files=['__init__.py','plugin.py','plugin.json','database.py','exporter.py','tmb_codec.py',
-       'logos.py','logo_bundle.py','accounts.py','vod.py','dropbox_upload.py',
+       'setup_page.py','setup.html','logos.py','logo_bundle.py','accounts.py','vod.py','dropbox_upload.py',
        'CLOUD-SETUP.md','PUBLISHER-SETUP.md','PRIVACY.md','requirements.txt','README.md','FORMAT.md','logo.png','logo.svg','LICENSE']
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED) as z:
     for name in files:z.write(root/name,'tidytivi/'+name)
