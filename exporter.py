@@ -50,7 +50,7 @@ def export_backups(job, settings):
             scratch=Path(scratch);baseline=scratch/'baseline.db';baseline.write_bytes(archive.read('TvPlayer.db'))
             database=scratch/'combined.db';report=prepare(job,baseline,database)
             with sqlite3.connect(database) as db:
-                first=db.execute('SELECT id,last_group_playlist_id,last_group_id FROM channels ORDER BY playlist_id,position_in_playlist DESC,id LIMIT 1').fetchone()
+                first=db.execute('SELECT id,last_group_playlist_id,last_group_id FROM channels ORDER BY playlist_id,position_in_playlist ASC,id LIMIT 1').fetchone()
             prefs=ET.fromstring(archive.read('ar.tvplayer.tv_preferences.xml'))
             overrides={'lastChannelId':('long',str(first[0])), 'lastGroupPlaylistId':('long',str(first[1])),
                 'lastGroupId':('long',str(first[2])),'lastGroupTypeId':('int','4'),'lastContentType':('int','0'),

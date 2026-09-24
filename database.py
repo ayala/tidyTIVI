@@ -116,7 +116,7 @@ def prepare(job, baseline, output):
                         drm_scheme='',drm_license_url='',server_timezone=None,
                         catchup_type=3 if ch.get('catchup_hours',0)>0 else None,
                         catchup_hours=ch.get('catchup_hours',0),catchup_source=None,
-                        position_in_playlist=count-position,position_in_group=len(profile['channels'])-local_position,
+                        position_in_playlist=position,position_in_group=local_position,
                         is_visible=1,is_blocked=0,is_favorite=0,last_turn_on_time=0,
                         last_group_id=group_ids[0],last_group_type_id=4,last_group_playlist_id=pid,watch_time=0,
                         audio_track_selection=None,video_track_selection=None,closed_captions_selection=None,

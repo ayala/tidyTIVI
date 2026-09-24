@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.1
+# tidyTIVI 0.5.2
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.1.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.1/tidyTIVI-0.5.1.zip)
+or download [tidyTIVI-0.5.2.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.2/tidyTIVI-0.5.2.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -117,3 +117,14 @@ on an unrooted Android TV emulator running TiviMate 5.3.3. Corrupted bundle
 downloads were rejected while preserving the prior installation. Physical Fire
 TV hardware still needs end-to-end verification.
 The companion opens TiviMate’s Restore prompt; confirmation remains required.
+
+## 0.5.2 lineup ordering fix
+
+All channels now uses ascending Dispatcharr lineup order rather than reversing
+it. Category manual ordering and channel names are unchanged. Re-export and
+restore the updated bundle to apply the fix; existing backups retain the old
+positions. TiviMate’s displayed category counters still restart at 1.
+
+Verified 0.5.2 with 37 passing tests and a fresh Dropbox export restored through
+companion 0.6.0. The native All channels view now starts CBS, NBC, FOX, ABC, NY1,
+MY 9, CW, matching the Dispatcharr lineup. Physical Fire TV remains untested.
