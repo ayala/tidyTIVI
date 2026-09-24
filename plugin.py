@@ -104,7 +104,8 @@ def build_job(settings):
         channels.sort(key=lambda c: (float(c['number']), c['id']))
         if not channels:
             job['warnings'].append(f'Profile {profile.name} omitted from live playlists: no usable assigned stream from the selected providers.')
-        job['profiles'].append({'id': profile.pk, 'name': profile.name, 'channels': channels,
+        job['profiles'].append({'id': profile.pk, 'name': profile.name, 'display_name': str(settings.get(f'profile_name_{profile.pk}') or '').strip() or profile.name,
+                                'group_prefix': str(settings.get(f'group_prefix_{profile.pk}') or '').strip(), 'channels': channels,
                                 'excluded_channels': excluded, 'reassigned_channels': reassigned})
     if not any(p['channels'] for p in job['profiles']):
         raise ValueError('The selected profiles have no usable assigned streams from the selected providers.')
@@ -173,9 +174,15 @@ class Plugin:
         from .setup_page import install
         install()
         from apps.channels.models import ChannelProfile
-        fields = [{'id': f'profile_{p.pk}', 'label': f'Export {p.name}', 'type': 'boolean',
-                   'default': False, 'help_text': 'Include enabled, visible channels from this profile.'}
-                  for p in ChannelProfile.objects.order_by('name')]
+        fields = []
+        for p in ChannelProfile.objects.order_by('name'):
+            fields.extend([
+                {'id': f'profile_{p.pk}', 'label': f'Export {p.name}', 'type': 'boolean',
+                 'default': False, 'help_text': 'Include enabled, visible channels from this profile.'},
+                {'id': f'profile_name_{p.pk}', 'label': f'{p.name}: exported playlist name', 'type': 'string',
+                 'default': '', 'help_text': 'Optional export-only name. Blank keeps the Dispatcharr profile name; logo folder mappings are preserved.'},
+                {'id': f'group_prefix_{p.pk}', 'label': f'{p.name}: channel group prefix', 'type': 'string',
+                 'default': '', 'help_text': 'For example UK: produces UK: Local. Replaces an existing profile-name prefix such as Sky: and avoids repeating UK:. Blank preserves group names.'}])
         from apps.channels.models import ChannelStream
         stream_model = ChannelStream._meta.get_field('stream').related_model
         account_model = stream_model._meta.get_field('m3u_account').related_model

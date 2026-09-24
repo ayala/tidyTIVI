@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.6
+# tidyTIVI 0.5.7
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.6.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.6/tidyTIVI-0.5.6.zip)
+or download [tidyTIVI-0.5.7.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.7/tidyTIVI-0.5.7.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -164,3 +164,12 @@ The US folder is currently approximately 44 MB and the UK folder 22 MB, so these
 packs can be larger than custom profile packs. Follow the repository’s attribution
 and usage terms when redistributing its logos. This compatibility check does not
 change your existing logo repository or mappings.
+
+### Exported profile and category names
+
+Each profile has optional **exported playlist name** and **channel group prefix**
+settings. For Sky, a playlist name of `United Kingdom` and prefix `UK:` exports
+`UK: Local` from either `Local` or `Sky: Local`. An existing `UK:` is not duplicated.
+Blank fields preserve the original names. ALL CAPS is applied after prefixing.
+These settings do not rename Dispatcharr profiles, channels, or tidyCH logo mappings.
+Save the settings and export a fresh bundle, then update and restore on the receiver.

@@ -18,6 +18,25 @@ def insert(db, table, values):
                       ','.join('?' for _ in keys)+')', [values[k] for k in keys]).lastrowid
 
 
+def profile_name(profile):
+    return profile.get('display_name') or profile['name']
+
+
+def profile_group_name(profile, name):
+    prefix = profile.get('group_prefix', '').strip()
+    if not prefix:
+        return name
+    # Remove only known profile/country prefixes, preserving meaningful colons.
+    aliases = {profile['name'].strip(), profile_name(profile).strip(), prefix.rstrip(': ·').strip()}
+    import re
+    for alias in sorted(aliases, key=len, reverse=True):
+        if alias:
+            name, count = re.subn(r'^' + re.escape(alias) + r'\s*[:·]\s*', '', name, count=1, flags=re.IGNORECASE)
+            if count:
+                break
+    return prefix + ' ' + name
+
+
 def channel_group_name(job, name):
     return name.upper() if job.get('settings', {}).get('uppercase_groups', False) else name
 
@@ -73,7 +92,7 @@ def prepare(job, baseline, output):
                 'name': source['name'], 'url': source['url'], 'time_offset': 0, 'last_update_time': 0})
         total = sum(len(profile['channels']) for profile in job['profiles'])
         separate = job['settings'].get('profile_playlists', True)
-        batches = [(p['name'], [p], 'lineup-'+str(p['id'])+'.m3u') for p in job['profiles'] if p['channels']] if separate else [(job['settings'].get('playlist_name') or 'tidyTIVI', job['profiles'], 'lineup.m3u')]
+        batches = [(profile_name(p), [p], 'lineup-'+str(p['id'])+'.m3u') for p in job['profiles'] if p['channels']] if separate else [(job['settings'].get('playlist_name') or 'tidyTIVI', job['profiles'], 'lineup.m3u')]
         report = {'profiles': [], 'channels': total, 'catchup_channels': sum(c.get('catchup_hours',0)>0 for p in job['profiles'] for c in p['channels']), 'playlists': len(batches), 'epg_sources': len(source_ids)}
         for playlist_position,(name,profiles,filename) in enumerate(batches):
             count = sum(len(p['channels']) for p in profiles)
@@ -100,13 +119,13 @@ def prepare(job, baseline, output):
                 group_number+=1
                 return gid
             for profile in profiles:
-                profile_gid = None if separate else group(profile['name'])
+                profile_gid = None if separate else group(profile_name(profile))
                 subgroups = {}
                 for local_position,ch in enumerate(profile['channels']):
                     group_ids = [] if separate else [profile_gid]
                     if separate or job['settings'].get('include_subgroups', True):
                         if ch['group_id'] not in subgroups:
-                            subgroups[ch['group_id']]=group(ch['group_name'] if separate else profile['name']+' · '+ch['group_name'])
+                            subgroups[ch['group_id']]=group(profile_group_name(profile,ch['group_name']) if separate else profile_name(profile)+' · '+profile_group_name(profile,ch['group_name']))
                         group_ids.append(subgroups[ch['group_id']])
                     curated = ch['name'] if job['settings']['names'] else ch['provider_name']
                     if job['settings']['number_prefix']:
