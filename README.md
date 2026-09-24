@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.5
+# tidyTIVI 0.5.6
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.5.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.5/tidyTIVI-0.5.5.zip)
+or download [tidyTIVI-0.5.6.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.6/tidyTIVI-0.5.6.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
