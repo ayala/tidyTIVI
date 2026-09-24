@@ -189,17 +189,21 @@ class Plugin:
             {'id':'template_path','label':'Private baseline backup file','type':'string',
              'default':'/data/tidytivi/template.tmb','help_text':'Must match the codec seed. Provides TiviMate 5.3.3 settings and database schema.'}
         ])
+        # Preserve legacy authorization before the settings UI can omit hidden fields.
+        from apps.plugins.models import PluginConfig
+        from .dropbox_upload import migrate_auth
+        saved_config = PluginConfig.objects.filter(key='tidytivi').first()
+        if saved_config:
+            migrate_auth(saved_config.settings or {})
         fields.extend([
             {'id':'dropbox_upload','label':'Upload to Dropbox after export','type':'boolean','default':False,
              'help_text':'Overwrite the configured bundle path after a successful export. The shared download link contains access to provider credentials; keep it private.'},
             {'id':'dropbox_path','label':'Dropbox bundle path','type':'string','default':'/tidytivi-latest.zip'},
-            {'id':'dropbox_app_key','label':'Dropbox app key','type':'string','default':''},
-            {'id':'dropbox_app_secret','label':'Dropbox app secret','type':'string','input_type':'password','default':''},
-            {'id':'dropbox_auth_code','label':'Dropbox authorization code (one-time)','type':'string','input_type':'password','default':''},
-            {'id':'dropbox_refresh_token','label':'Dropbox refresh token','type':'string','input_type':'password','default':'',
-             'help_text':'One-time Dropbox authorization with files.content.write, sharing.write and sharing.read scopes.'},
-            {'id':'dropbox_access_token','label':'Dropbox temporary access token (optional)','type':'string','input_type':'password','default':'',
-             'help_text':'For initial testing only; use a refresh token for unattended uploads.'}
+            {'id':'dropbox_app_key','label':'Dropbox app key (one-time setup)','type':'string','default':'',
+             'help_text':'Create an App folder app at https://www.dropbox.com/developers/apps. Enable files.content.write, sharing.read and sharing.write, then copy its app key here. No app secret is needed.'},
+            {'id':'dropbox_auth_code','label':'One-time connection code','type':'string','input_type':'password','default':'',
+             'help_text':'Save the app key and click Connect Dropbox. Paste the code Dropbox shows, save, then click Connect Dropbox again. Cleared after connection.'}
+
         ])
         return fields
 
@@ -208,7 +212,10 @@ class Plugin:
         try:
             if action == 'dropbox_connect':
                 from .dropbox_upload import connect
-                return {'status':'ok','message':json.dumps(connect(settings))}
+                return {'status':'ok','message':connect(settings)}
+            if action == 'dropbox_status':
+                from .dropbox_upload import connection_status
+                return {'status':'ok','message':connection_status(settings)}
             if action not in ('preview', 'export_job', 'export_backups'):
                 return {'status': 'error', 'message': 'Unknown action.'}
             job = build_job(settings)

@@ -1,4 +1,9 @@
 """Dropbox upload with renewable OAuth credentials and a stable shared link."""
+import base64
+import os
+import secrets
+import tempfile
+import time
 import hashlib
 import json
 from pathlib import Path
@@ -11,33 +16,111 @@ def token_request(values):
         with urlopen(Request('https://api.dropboxapi.com/oauth2/token',data=urlencode(values).encode()),timeout=45) as response:
             return json.load(response)
     except Exception:
-        raise ValueError('Dropbox authorization failed. Check the app credentials and authorization/refresh token.') from None
+        raise ValueError('Dropbox authorization failed. Check the app key or run Connect Dropbox again with a fresh one-time code.') from None
+
+
+AUTH_FILE = Path('/data/tidytivi/dropbox.json')
+
+
+def read_auth():
+    try:
+        return json.loads(AUTH_FILE.read_text())
+    except FileNotFoundError:
+        return {}
+    except Exception:
+        raise ValueError('Could not read the saved Dropbox connection.') from None
+
+
+def save_auth(values):
+    AUTH_FILE.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd, name = tempfile.mkstemp(prefix='.dropbox-', dir=AUTH_FILE.parent)
+    try:
+        with os.fdopen(fd, 'w') as handle:
+            json.dump(values, handle)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(name, AUTH_FILE)
+    finally:
+        if os.path.exists(name): os.unlink(name)
+
+
+def migrate_auth(settings):
+    auth = read_auth()
+    if not auth.get('refresh_token') and not auth.get('access_token'):
+        if settings.get('dropbox_refresh_token') or settings.get('dropbox_access_token'):
+            auth.update(app_key=settings.get('dropbox_app_key',''),
+                        app_secret=settings.get('dropbox_app_secret',''),
+                        refresh_token=settings.get('dropbox_refresh_token',''),
+                        access_token=settings.get('dropbox_access_token',''))
+            save_auth(auth)
+    return auth
+
+
+def connection_status(settings):
+    auth = migrate_auth(settings)
+    if auth.get('refresh_token'):
+        return 'Dropbox connection saved. Automatic authorization renewal is configured. Export a bundle to verify upload access.'
+    if auth.get('access_token'):
+        return 'A temporary Dropbox connection is saved. Use Connect Dropbox to authorize automatic renewal.'
+    if auth.get('pending'):
+        return 'Waiting for Dropbox approval. Paste the one-time code, save settings, then click Connect Dropbox again.'
+    return 'Dropbox is not connected. Save your app key, then click Connect Dropbox.'
+
+
+def clear_code():
+    from apps.plugins.models import PluginConfig
+    from django.db import transaction
+    with transaction.atomic():
+        cfg = PluginConfig.objects.select_for_update().get(key='tidytivi')
+        cfg.settings = dict(cfg.settings or {})
+        for key in ('dropbox_auth_code','dropbox_refresh_token','dropbox_access_token','dropbox_app_secret'):
+            cfg.settings.pop(key, None)
+        cfg.save(update_fields=['settings'])
 
 
 def connect(settings):
-    key=str(settings.get('dropbox_app_key','')).strip()
-    secret=str(settings.get('dropbox_app_secret','')).strip()
-    if not key or not secret:raise ValueError('Enter the Dropbox app key and app secret first.')
-    code=str(settings.get('dropbox_auth_code','')).strip()
-    if not code:
-        return {'authorization_url':'https://www.dropbox.com/oauth2/authorize?'+urlencode({'client_id':key,'response_type':'code','token_access_type':'offline'}),
-                'message':'Open this URL, authorize your Dropbox app, then paste the returned code into Dropbox authorization code and run Connect again.'}
-    result=token_request({'grant_type':'authorization_code','code':code,'client_id':key,'client_secret':secret})
-    if not result.get('refresh_token'):raise ValueError('Dropbox did not return an offline refresh token.')
-    from apps.plugins.models import PluginConfig
-    cfg=PluginConfig.objects.get(key='tidytivi');cfg.settings.update({'dropbox_refresh_token':result['refresh_token'],'dropbox_auth_code':'','dropbox_access_token':''});cfg.save(update_fields=['settings'])
-    return {'message':'Dropbox connected. Enable Upload to Dropbox after export and save settings.'}
+    auth = migrate_auth(settings)
+    key = str(settings.get('dropbox_app_key','')).strip()
+    if not key:
+        raise ValueError('Save your Dropbox app key first. The setup guide is in the tidyTIVI README; no app secret is needed.')
+    code = str(settings.get('dropbox_auth_code','')).strip()
+    if code:
+        pending = auth.get('pending', {})
+        if pending.get('app_key') != key or time.time() - pending.get('created_at',0) > 1800:
+            raise ValueError('This connection attempt expired or the app key changed. Clear the one-time code, save, then click Connect Dropbox for a new link.')
+        result = token_request({'grant_type':'authorization_code','code':code,'client_id':key,
+                                'code_verifier':pending['verifier']})
+        if not result.get('refresh_token'):
+            raise ValueError('Dropbox did not return ongoing access. Start Connect Dropbox again.')
+        save_auth({'app_key':key,'refresh_token':result['refresh_token']})
+        clear_code()
+        return 'Dropbox connected. Enable Upload to Dropbox after export and save. The next export returns the download link for your Firestick. Refresh the plugin page to clear the completed setup code.'
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).decode().rstrip('=')
+    auth['pending'] = {'app_key':key,'verifier':verifier,'created_at':time.time()}
+    save_auth(auth)
+    url = 'https://www.dropbox.com/oauth2/authorize?' + urlencode({'client_id':key,'response_type':'code',
+          'token_access_type':'offline','code_challenge':challenge,'code_challenge_method':'S256'})
+    return 'Open this link and approve Dropbox access:\n'+url+'\n\nCopy the code Dropbox shows into One-time connection code, save settings, then click Connect Dropbox again. No app secret or token is needed.'
+
+
+def access_token(settings):
+    auth = migrate_auth(settings)
+    if auth.get('refresh_token'):
+        values = {'grant_type':'refresh_token','refresh_token':auth['refresh_token'],'client_id':auth['app_key']}
+        if auth.get('app_secret'): values['client_secret'] = auth['app_secret']
+        token = token_request(values).get('access_token')
+    else:
+        token = auth.get('access_token')
+    if not token: raise ValueError('Connect Dropbox before enabling automatic upload.')
+    return token
 
 
 def upload_bundle(path, settings):
     path=Path(path);remote=str(settings.get('dropbox_path') or '/tidytivi-latest.zip')
     if not remote.startswith('/') or not remote.endswith('.zip') or '..' in remote.split('/'):
         raise ValueError('Dropbox path must be an absolute .zip file path.')
-    refresh=str(settings.get('dropbox_refresh_token','')).strip()
-    if refresh:
-        token=token_request({'grant_type':'refresh_token','refresh_token':refresh,'client_id':settings.get('dropbox_app_key',''),'client_secret':settings.get('dropbox_app_secret','')}).get('access_token')
-    else:token=str(settings.get('dropbox_access_token','')).strip()
-    if not token:raise ValueError('Connect Dropbox before enabling automatic upload.')
+    token=access_token(settings)
     def call(route,args,data=None):
         headers={'Authorization':'Bearer '+token}
         host='https://api.dropboxapi.com/2/'

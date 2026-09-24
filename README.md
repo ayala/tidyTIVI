@@ -1,4 +1,4 @@
-# tidyTIVI 0.4.1
+# tidyTIVI 0.4.2
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.4.1.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.4.1/tidyTIVI-0.4.1.zip)
+or download [tidyTIVI-0.4.2.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.4.2/tidyTIVI-0.4.2.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -59,19 +59,24 @@ bundle and download link private.
 
 1. Create a scoped **App folder** app in the [Dropbox App Console](https://www.dropbox.com/developers/apps).
 2. Enable `files.content.write`, `sharing.write`, and `sharing.read` scopes.
-3. Enter its app key and app secret in tidyTIVI and save settings.
-4. Run **Connect Dropbox**, open the returned authorization URL, approve access,
-   then paste the returned code into **Dropbox authorization code**, save, and
-   run Connect again. The plugin stores the renewable refresh token and clears
-   the one-time code.
-5. Enable **Upload to Dropbox after export** and save. Export overwrites the
-   configured `.zip` path and returns a reusable direct download link. Use a
-   different Dropbox path for a separate recipient/account configuration.
+3. Enter only its **app key** in tidyTIVI and save settings. No app secret is needed.
+4. Click **Connect Dropbox**, open the displayed link, approve access, then copy
+   Dropbox's code into **One-time connection code**. Save and click Connect Dropbox
+   again. The code is cleared after success; refresh the plugin page afterward.
+5. Enable **Upload to Dropbox after export** and save. The default bundle path is
+   ready to use. Export overwrites that file and returns the download link for
+   the companion. Choose a separate path for each recipient/account configuration.
+
+**Dropbox status** shows whether authorization is saved and the next setup step;
+it does not claim a live upload has succeeded. Tokens are managed automatically
+in `/data/tidytivi/dropbox.json` (owner-only permissions), outside editable plugin
+settings. Existing connections migrate without requiring authorization again.
+Back up this private file with your installation; never publish it. Save the app
+key and start Connect again if a connection attempt expires after 30 minutes.
 
 The plugin uses Dropbox's official [OAuth flow](https://www.dropbox.com/developers/reference/auth-types)
 and [sharing API](https://docs.dropboxapi.com/dropbox-api/docs/sharing).
-Tokens and recipient passwords use masked inputs; Dispatcharr stores plugin
-settings in its database. Dropbox authorization requires the owner's account;
+Recipient passwords use masked inputs and remain in Dispatcharr’s database. Dropbox authorization requires the owner's account;
 no Dropbox credentials are bundled with this source or APK.
 
 ## Firestick companion
@@ -113,7 +118,7 @@ folder. Companion source and build instructions are maintained in
 
 ## Verification and limits
 
-Version 0.4.1 passed 23 automated tests. Export, restore, logos, profile categories,
+Version 0.4.2 passed 27 automated tests. Export, restore, logos, profile categories,
 live playback, populated EPG, native Movies/Series and episode lookup were checked
 on an unrooted Android TV emulator running TiviMate 5.3.3. Corrupted bundle
 downloads were rejected while preserving the prior installation. Physical Fire

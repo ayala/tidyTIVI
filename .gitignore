@@ -20,3 +20,6 @@ worker/
 TREX-EXPORT-REPORT.md
 VALIDATION.md
 .env
+
+dropbox.json
+restore-points/
