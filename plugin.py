@@ -149,6 +149,18 @@ def summary(job):
 
 
 class Plugin:
+    def __init__(self):
+        # Every web worker discovers plugins at startup. Keep callback registration
+        # separate from action authorization; the callback requires one-time state.
+        try:
+            from django.conf import settings
+            if getattr(settings, 'SECRET_KEY', ''):
+                from .cloud_routes import install
+                install()
+        except Exception:
+            import logging
+            logging.getLogger(__name__).debug('Cloud callback not installed in this process.')
+
     @property
     def fields(self):
         from apps.channels.models import ChannelProfile
@@ -195,21 +207,31 @@ class Plugin:
         saved_config = PluginConfig.objects.filter(key='tidytivi').first()
         if saved_config:
             migrate_auth(saved_config.settings or {})
+        old = (saved_config.settings or {}) if saved_config else {}
         fields.extend([
-            {'id':'dropbox_upload','label':'Upload to Dropbox after export','type':'boolean','default':False,
-             'help_text':'Overwrite the configured bundle path after a successful export. The shared download link contains access to provider credentials; keep it private.'},
-            {'id':'dropbox_path','label':'Dropbox bundle path','type':'string','default':'/tidytivi-latest.zip'},
-            {'id':'dropbox_app_key','label':'Dropbox app key (one-time setup)','type':'string','default':'',
-             'help_text':'Create an App folder app at https://www.dropbox.com/developers/apps. Enable files.content.write, sharing.read and sharing.write, then copy its app key here. No app secret is needed.'},
-            {'id':'dropbox_auth_code','label':'One-time connection code','type':'string','input_type':'password','default':'',
-             'help_text':'Save the app key and click Connect Dropbox. Paste the code Dropbox shows, save, then click Connect Dropbox again. Cleared after connection.'}
-
+            {'id':'cloud_provider','label':'Cloud storage','type':'select','default':'dropbox',
+             'options':[{'value':'dropbox','label':'Dropbox'},{'value':'drive','label':'Google Drive'}]},
+            {'id':'cloud_upload','label':'Upload after export','type':'boolean','default':enabled(old.get('dropbox_upload',False)),
+             'help_text':'Keep the cloud bundle up to date for your Firestick. Its unlisted download link grants access to exported accounts; keep it private.'},
+            {'id':'cloud_filename','label':'Bundle filename','type':'string','default':Path(old.get('dropbox_path') or '/tidytivi-latest.zip').name,
+             'help_text':'Use a different .zip filename for each recipient. Updates keep the same download link.'},
+            {'id':'cloud_setup','label':'Cloud connection','type':'info',
+             'value':'Save your cloud choice, then click Connect cloud storage and approve access in your browser. Initial app registration is required once; see CLOUD-SETUP.md. On an internal HTTP server, open the temporary localhost connection on your Mac first.'}
         ])
+
         return fields
 
     def run(self, action, params, context):
         settings = context.get('settings', {})
         try:
+            if action == 'cloud_connect':
+                from .cloud_auth import begin
+                from .cloud_routes import install
+                install()
+                return {'status':'ok','message':'Open this link to sign in and approve access. You will return automatically; no code needs to be pasted.\n'+begin(settings)}
+            if action == 'cloud_status':
+                from .cloud_auth import status
+                return {'status':'ok','message':status(settings)}
             if action == 'dropbox_connect':
                 from .dropbox_upload import connect
                 return {'status':'ok','message':connect(settings)}
@@ -225,13 +247,27 @@ class Plugin:
                 report['backups'] = export_backups(job, settings)
                 missing=report['backups'][0]['logos'].get('missing_assigned_logos',[])
                 if missing:report['warnings'].append(str(len(missing))+' assigned logo URLs could not be downloaded; channels and complete country folders were retained. See missing_assigned_logos.')
-                if enabled(settings.get('dropbox_upload', False)):
-                    from .dropbox_upload import upload_bundle
+                if enabled(settings.get('cloud_upload',settings.get('dropbox_upload',False))):
+                    from .cloud_auth import provider
+                    which=provider(settings)
                     try:
-                        report['dropbox'] = upload_bundle(report['backups'][0]['bundle'], settings)
+                        if which=='drive':
+                            from .drive_upload import upload_bundle
+                            report['cloud']=upload_bundle(report['backups'][0]['bundle'],settings)
+                        else:
+                            from .dropbox_upload import upload_bundle
+                            options=dict(settings)
+                            if settings.get('cloud_filename'):
+                                name=str(settings['cloud_filename'])
+                                if '/' in name or '\\' in name or not name.endswith('.zip'):
+                                    raise ValueError('Bundle filename must be a .zip filename without folders.')
+                                # Retain the folder used by older Dropbox setups.
+                                from pathlib import PurePosixPath
+                                options['dropbox_path']=str(PurePosixPath(settings.get('dropbox_path') or '/tidytivi-latest.zip').parent/name)
+                            report['cloud']=upload_bundle(report['backups'][0]['bundle'],options)
                     except ValueError as exc:
-                        report['dropbox'] = {'status':'error','message':str(exc)}
-                        report['warnings'].append('Local export succeeded, but Dropbox publication failed.')
+                        report['cloud']={'status':'error','message':str(exc)}
+                        report['warnings'].append('Local export succeeded, but cloud publication failed.')
             if action == 'export_job':
                 directory = Path(settings.get('export_directory') or '/data/exports/tidytivi')
                 if not directory.is_absolute():

@@ -1,6 +1,6 @@
 {
   "name": "tidyTIVI",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "One curated TiviMate backup, complete country logos, recipient credentials and Dropbox updates.",
   "author": "ayala",
   "license": "MIT",
@@ -32,18 +32,18 @@
       "button_color": "blue"
     },
     {
-      "id": "dropbox_connect",
-      "label": "Connect Dropbox",
-      "button_label": "Connect Dropbox",
-      "description": "Authorize Dropbox once, then export and upload to the same bundle path.",
+      "id": "cloud_connect",
+      "label": "Connect cloud storage",
+      "button_label": "Connect cloud storage",
+      "description": "Sign in to the selected Dropbox or Google Drive account.",
       "button_variant": "outline",
       "button_color": "blue"
     },
     {
-      "id": "dropbox_status",
-      "label": "Dropbox connection status",
-      "button_label": "Dropbox status",
-      "description": "Show whether Dropbox authorization is saved and the next setup step.",
+      "id": "cloud_status",
+      "label": "Cloud connection status",
+      "button_label": "Cloud status",
+      "description": "Show whether authorization is saved for the selected service.",
       "button_variant": "outline",
       "button_color": "blue"
     }

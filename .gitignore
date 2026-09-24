@@ -23,3 +23,7 @@ VALIDATION.md
 
 dropbox.json
 restore-points/
+cloud-clients.json
+cloud-pending.json
+google-drive.json
+cloud.lock
