@@ -1,6 +1,7 @@
 # Cloud connection setup
 
-Choose Dropbox or Google Drive, click **Connect cloud storage**, open the returned
+In **Settings**, choose Dropbox or Google Drive and save. Then open **Actions**,
+click **Connect cloud storage**, open the returned
 sign-in link, and approve access. The browser returns automatically; no code or
 token needs to be pasted. Authorization is retained privately on the Dispatcharr
 server for future exports. You can connect both services and select which receives
@@ -25,6 +26,12 @@ and/or a Google OAuth client once for this installation, then provision
   }
 }
 ```
+
+The return URL is installation-specific configuration, not your Dispatcharr LAN
+address embedded in the plugin. The localhost address above is an example for
+the temporary tunnel; set `redirect_uri` to the exact address registered for your
+installation. Neither the companion app nor cloud downloads need your internal
+Dispatcharr address.
 
 The exact return URL must also be registered with the provider. The route is
 installed in each Dispatcharr web worker by plugin discovery; restart the web

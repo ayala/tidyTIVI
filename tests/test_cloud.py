@@ -48,7 +48,7 @@ class CloudAuthTests(unittest.TestCase):
             req.assert_not_called()
     def test_localhost_callback_is_allowed_but_private_http_is_not(self):
         self.assertEqual(auth.validate_redirect('http://127.0.0.1:19191'+auth.CALLBACK_PATH),'http://127.0.0.1:19191'+auth.CALLBACK_PATH)
-        for url in ('http://10.1.1.107:9191','https://10.1.1.107','ftp://localhost','https://user:pass@example.com'):
+        for url in ('http://192.168.50.10:9191','https://192.168.50.10','ftp://localhost','https://user:pass@example.com'):
             with self.assertRaises(ValueError):auth.validate_redirect(url+auth.CALLBACK_PATH)
 
 class Response(io.BytesIO):
