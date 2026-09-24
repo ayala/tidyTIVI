@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.2
+# tidyTIVI 0.5.3
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.2.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.2/tidyTIVI-0.5.2.zip)
+or download [tidyTIVI-0.5.3.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.3/tidyTIVI-0.5.3.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -128,3 +128,34 @@ positions. TiviMate’s displayed category counters still restart at 1.
 Verified 0.5.2 with 37 passing tests and a fresh Dropbox export restored through
 companion 0.6.0. The native All channels view now starts CBS, NBC, FOX, ABC, NY1,
 MY 9, CW, matching the Dispatcharr lineup. Physical Fire TV remains untested.
+
+## Uppercase channel groups
+
+Enable **ALL CAPS channel groups** in tidyTIVI settings, then export and restore.
+This optional setting defaults off and changes live-TV category labels only,
+including profile groups in combined mode. For example, Sports becomes SPORTS
+and En Español becomes EN ESPAÑOL. Channel names, playlist names, lineup order,
+VOD categories and the source Dispatcharr configuration are unchanged. TiviMate’s
+built-in All channels and Favorites labels are not renamed.
+
+## Other logo repositories
+
+The [tv-logo/tv-logos repository](https://github.com/tv-logo/tv-logos) is compatible
+with the current folder importer and its PNG logos. Set tidyCH’s GitHub repository
+to `tv-logo/tv-logos` and map the exact profile names to its country folders, e.g.:
+
+```text
+DirecTV|us|countries/united-states
+Sky|uk|countries/united-kingdom
+Movistar Plus|es|countries/spain
+```
+
+Channel logos must already be assigned in Dispatcharr. tidyTIVI copies each full
+mapped folder and creates exact per-channel aliases from those assignments; it
+does not re-match channels by filename. Mapped files are exported under paths such
+as `logos/us/united-states/`, with channel aliases under `logos/_matched/`.
+Only selected profiles’ mapped folders are copied, not the entire repository.
+The US folder is currently approximately 44 MB and the UK folder 22 MB, so these
+packs can be larger than custom profile packs. Follow the repository’s attribution
+and usage terms when redistributing its logos. This compatibility check does not
+change your existing logo repository or mappings.

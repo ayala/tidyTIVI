@@ -18,6 +18,10 @@ def insert(db, table, values):
                       ','.join('?' for _ in keys)+')', [values[k] for k in keys]).lastrowid
 
 
+def channel_group_name(job, name):
+    return name.upper() if job.get('settings', {}).get('uppercase_groups', False) else name
+
+
 def prepare(job, baseline, output):
     if job.get('schema') != 'tidytivi.job.v1' or job.get('target_version') != '5.3.3':
         raise ValueError('Only tidyTIVI v1 jobs targeting TiviMate 5.3.3 are supported.')
@@ -91,7 +95,7 @@ def prepare(job, baseline, output):
             position = 0
             def group(name):
                 nonlocal group_number
-                gid=insert(db,'channel_groups',{'playlist_id':pid,'name':name,'is_custom':1,'position_in_playlist':group_number})
+                gid=insert(db,'channel_groups',{'playlist_id':pid,'name':channel_group_name(job,name),'is_custom':1,'position_in_playlist':group_number})
                 insert(db,'channel_group_options',{'type':4,'playlist_id':pid,'group_id':gid,'sorting':5,'prev_sorting':1,'is_visible':1,'are_favorites_only':0,'manual_position':group_number})
                 group_number+=1
                 return gid

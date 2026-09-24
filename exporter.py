@@ -11,7 +11,7 @@ import sqlite3
 import tempfile
 import xml.etree.ElementTree as ET
 import zipfile
-from .database import prepare
+from .database import prepare, channel_group_name
 from .logo_bundle import build_country_logos
 from .tmb_codec import decode, encode, load_seed
 
@@ -30,7 +30,7 @@ def m3u(job, profiles=None, categorized=False):
         for channel in profile['channels']:
             guide=channel.get('epg') or {}
             catchup=(' catchup="xc" catchup-days="'+str(channel['catchup_hours']//24)+'"') if channel.get('catchup_hours',0)>0 else ''
-            lines.append('#EXTINF:-1'+catchup+' tvg-id="'+attr(guide.get('xmltv_id',''))+'" tvg-logo="'+attr(channel.get('logo_url') or '')+'" group-title="'+attr(channel['group_name'] if categorized else profile['name'])+'",tidytivi-'+str(channel['id']))
+            lines.append('#EXTINF:-1'+catchup+' tvg-id="'+attr(guide.get('xmltv_id',''))+'" tvg-logo="'+attr(channel.get('logo_url') or '')+'" group-title="'+attr(channel_group_name(job,channel['group_name'] if categorized else profile['name']))+'",tidytivi-'+str(channel['id']))
             url=channel['provider_url']
             if '\n' in url or '\r' in url:raise ValueError('Invalid stream URL.')
             lines.append(url)
