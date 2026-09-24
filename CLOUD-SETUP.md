@@ -1,102 +1,49 @@
-# Cloud connection setup
+# Dropbox connection
 
-In **Settings**, choose Dropbox or Google Drive and save. Then open **Actions**,
-click **Connect cloud storage**, open the returned
-sign-in link, and approve access. The browser returns automatically; no code or
-token needs to be pasted. Authorization is retained privately on the Dispatcharr
-server for future exports. You can connect both services and select which receives
-the next export. Switching services produces a different companion download link.
+## Plugin users
 
-## One-time registration (installation owner)
+1. Open **Actions → Connect Dropbox** and open its sign-in link.
+2. Approve tidyTIVI access to its dedicated Dropbox app folder.
+3. Copy the displayed code into **Settings → One-time connection code**, then save.
+4. Open **Actions → Finish connection**.
+5. Enable **Upload after export**, save, and export. Enter the resulting download
+   link in the companion once. Later exports retain that link for the same file.
 
-The public plugin does not ship OAuth client credentials. Register a Dropbox app
-and/or a Google OAuth client once for this installation, then provision
-`/data/tidytivi/cloud-clients.json`, owned by the Dispatcharr user, mode `0600`:
+No app registration, client secret, callback address, localhost tunnel, or hosted
+relay is required. Authorization codes expire after 30 minutes and are consumed
+once. Use **Connect Dropbox** to restart or **Cancel connection** to discard an
+attempt. Failed or cancelled connections preserve the previous authorization.
 
-```json
-{
-  "dropbox": {
-    "client_id": "YOUR_DROPBOX_APP_KEY",
-    "redirect_uri": "http://127.0.0.1:19191/api/plugins/tidytivi/cloud/callback/"
-  },
-  "drive": {
-    "client_id": "YOUR_GOOGLE_WEB_CLIENT_ID",
-    "client_secret": "YOUR_GOOGLE_CLIENT_SECRET",
-    "redirect_uri": "http://127.0.0.1:19191/api/plugins/tidytivi/cloud/callback/"
-  }
-}
-```
+## Who handles app registration?
 
-The return URL is installation-specific configuration, not your Dispatcharr LAN
-address embedded in the plugin. The localhost address above is an example for
-the temporary tunnel; set `redirect_uri` to the exact address registered for your
-installation. Neither the companion app nor cloud downloads need your internal
-Dispatcharr address.
+The tidyTIVI publisher has already registered the shared Dropbox application.
+Plugin users only follow the connection steps above. Publisher-only maintenance
+is documented separately in [PUBLISHER-SETUP.md](PUBLISHER-SETUP.md).
+See [PRIVACY.md](PRIVACY.md) for what is stored and shared.
 
-The exact return URL must also be registered with the provider. The route is
-installed in each Dispatcharr web worker by plugin discovery; restart the web
-workers once after installing this version if the callback is not found.
+## Troubleshooting
 
-**Dropbox:** Create a scoped App folder app at
-https://www.dropbox.com/developers/apps. Enable `files.content.write`,
-`sharing.read`, and `sharing.write`. Register the return URL above. The plugin uses
-PKCE and does not need an app secret. Existing Dropbox authorizations remain usable.
+- **App has few users warning:** tidyTIVI is a new Dropbox integration. Check the
+  app name is tidyTIVI before continuing. This notice may appear during development.
+- **No Connect button in Settings:** save and switch to the **Actions** tab.
+- **Expired or already-used code:** start Connect Dropbox again and use the new code.
+- **Saved authorization but upload fails:** keep the local export, check Dropbox
+  storage and authorization, then retry. Status alone does not verify an upload.
 
-**Google Drive:** In Google Cloud, enable the Drive API, configure the OAuth consent
-screen, and create a **Web application** OAuth client with the return URL above.
-The requested scope is `https://www.googleapis.com/auth/drive.file`, limited to
-files made/opened by this app. Add your account as a test user while testing.
-External apps left in Google's Testing publishing status generally receive
-refresh tokens that expire after seven days for this scope; configure production
-publishing appropriately for ongoing unattended use. Follow any review requirements
-shown by Google rather than assuming a test connection is permanent.
+## Migration and private state
 
-Google references: https://developers.google.com/identity/protocols/oauth2/web-server
-and https://developers.google.com/identity/protocols/oauth2#expiration
+Existing Dropbox connections retain their original app keys and saved refresh
+tokens. New sign-ins use the shared publisher key. Legacy explicit app-key settings
+remain supported for compatibility, but are not exposed to ordinary users.
+An installation previously selecting Google Drive has automatic upload disabled
+on migration. Connect Dropbox, then explicitly enable upload. Google resources
+and existing private Google authorization files are not deleted.
 
-## Internal HTTP server: temporary localhost connection
+Back up `/data/tidytivi/dropbox.json` privately. It contains renewable authorization
+and is stored with owner-only permissions. Never publish it. User tokens remain
+on Dispatcharr; the companion receives only a download link. Cloud uploads go
+directly from Dispatcharr to Dropbox. No additional service handles user files.
 
-Google does not accept a plain HTTP private-IP return URL. You do not need to
-publish Dispatcharr to the internet. On the computer where you will sign in, open
-an SSH tunnel to the Dispatcharr host:
-
-```sh
-ssh -N -L 127.0.0.1:19191:127.0.0.1:9191 YOUR_DISPATCHARR_SSH_HOST
-```
-
-Keep it running until the browser says the connection succeeded. Sign in through
-that computer's browser; `127.0.0.1` refers to that same computer. Close the tunnel
-afterward. Automatic exports and Firestick downloads do not use the tunnel.
-An existing HTTPS hostname reachable by your browser is another option; register
-its exact callback URL instead. The Firestick does not need this setup.
-
-## Export and receive
-
-Save the cloud provider, filename, and **Upload after export** setting. Export a
-bundle; the result includes an unlisted download URL. Copy it to the companion
-once. Use companion 0.5.0 or later for Drive links and download confirmation pages.
-Use separate filenames for recipients. Dropbox retains the legacy destination
-folder if one was configured. Drive manages an app-created ZIP by filename and
-updates its file ID in place to retain its link. Duplicate managed filenames are
-rejected instead of overwriting an arbitrary file.
-
-The bundle contains provider credentials. The generated link grants file access to
-anyone who has it; do not post it publicly. Drive organizational policy or download
-quotas can prevent sharing/downloads. SHA checks in the receiver validate the
-bundle after either service delivers it. Cloud failures keep the local export.
-
-## Private state and rollback
-
-Back up `/data/tidytivi/cloud-clients.json`, `google-drive.json`, and `dropbox.json`
-privately. Pending authorization attempts expire after 30 minutes and are consumed
-once; failed/cancelled reconnections leave the previous connection intact. State
-is independent of editable plugin settings. Never commit these files to GitHub.
-The existing 0.4.2 Dropbox copy/paste flow remains callable for compatibility but
-is replaced by the common cloud actions in the UI.
-
-## Validation limits
-
-OAuth exchanges and upload behavior are covered with mocked provider responses.
-The callback is tested through Dispatcharr, and the companion's Drive link parser
-has local tests. Real Google/Dropbox consent, account uploads and physical Fire TV
-downloads still require end-to-end verification after registration and sign-in.
+The bundle contains provider credentials. Anyone possessing its shared link can
+read it; keep it private. Failed uploads preserve the local export. Bundle size
+and SHA-256 checks protect the companion installation against incomplete files.

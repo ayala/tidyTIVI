@@ -84,6 +84,38 @@ class DropboxConnectionTests(unittest.TestCase):
         import dropbox_upload as d
         d.save_auth({'app_key':'old','refresh_token':'working'})
         d.connect({'dropbox_app_key':'new'})
-        with patch('dropbox_upload.token_request',side_effect=ValueError('failed')):
+        with patch('dropbox_upload.token_request',side_effect=ValueError('failed')), patch('dropbox_upload.clear_code'):
             with self.assertRaises(ValueError):d.connect({'dropbox_app_key':'new','dropbox_auth_code':'bad'})
         self.assertEqual(d.read_auth()['refresh_token'],'working')
+
+    def test_shared_key_and_replay_protection(self):
+        import dropbox_upload as d
+        with patch.object(d,'PUBLISHER_APP_KEY','publisher'):
+            self.assertIn('client_id=publisher',d.connect({},finish=False))
+        with patch.object(d,'clear_code'), patch.object(d,'token_request',return_value={'refresh_token':'saved'}) as request:
+            d.connect({'dropbox_auth_code':'code'},finish=True)
+            with self.assertRaisesRegex(ValueError,'already used'):
+                d.connect({'dropbox_auth_code':'code'},finish=True)
+            self.assertEqual(request.call_count,1)
+        self.assertEqual(d.read_auth()['app_key'],'publisher')
+
+    def test_cancel_and_expiry_keep_existing_account(self):
+        import dropbox_upload as d
+        d.save_auth({'app_key':'old','refresh_token':'keep'})
+        with patch.object(d,'PUBLISHER_APP_KEY','publisher'), patch.object(d,'clear_code'):
+            d.connect({},finish=False)
+            auth=d.read_auth();auth['pending']['created_at']=0;d.save_auth(auth)
+            with patch.object(d,'token_request') as request:
+                with self.assertRaisesRegex(ValueError,'expired'):
+                    d.connect({'dropbox_auth_code':'code'},finish=True)
+                request.assert_not_called()
+            d.cancel_connection({})
+        self.assertEqual(d.read_auth(),{'app_key':'old','refresh_token':'keep'})
+
+    def test_drive_migration_disables_upload(self):
+        import dropbox_upload as d
+        migrated=d.prepare_settings({'cloud_provider':'drive','cloud_upload':True,'profile_1':True})
+        self.assertFalse(migrated['cloud_upload'])
+        self.assertEqual(migrated['cloud_provider'],'dropbox')
+        self.assertTrue(migrated['profile_1'])
+        self.assertTrue(d.prepare_settings({'cloud_provider':'dropbox','cloud_upload':True})['cloud_upload'])

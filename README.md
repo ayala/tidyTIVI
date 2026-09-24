@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.0
+# tidyTIVI 0.5.1
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.0.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.0/tidyTIVI-0.5.0.zip)
+or download [tidyTIVI-0.5.1.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.1/tidyTIVI-0.5.1.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -55,24 +55,25 @@ app's download. Its manifest checks the size and SHA-256 of every payload file.
 All these files can contain or grant access to provider credentials. Keep the
 bundle and download link private.
 
-## Cloud storage
+## Dropbox sync
 
-Choose **Dropbox** or **Google Drive**, save, then use **Connect cloud storage**.
-Approve access in the browser; the sign-in callback saves authorization for future
-uploads without a pasted code. Enable **Upload after export** and choose a bundle
-filename. Both connections can be retained independently. **Cloud status** reports
-saved authorization; only a successful export verifies upload access.
+No app registration, public server address, or tunnel is needed for users.
+Open **Actions → Connect Dropbox** and follow the sign-in link. Approve access,
+copy Dropbox's one-time code into **Settings → One-time connection code**, and
+save. Then click **Actions → Finish connection**. Enable **Upload after export**
+and choose a bundle filename. Future exports renew authorization automatically
+and overwrite the bundle while retaining its download link.
 
-The installation owner must register the provider apps once. For an internal HTTP
-server, a temporary localhost tunnel on the sign-in computer receives the callback;
-automatic uploads do not need that tunnel. See [CLOUD-SETUP.md](CLOUD-SETUP.md) for
-registration, Google's test-token limits, callback setup and private state backup.
+**Dropbox status** reports saved authorization; a successful export verifies upload
+access. **Cancel connection** cancels a pending attempt without disconnecting an
+existing account. Use different filenames for recipients. Keep bundle links private.
+See [CLOUD-SETUP.md](CLOUD-SETUP.md) for publisher maintenance and migration details.
 
 ## Firestick companion
 
 Download the APK from the separate [companion repository](https://github.com/ayala/tidyTIVI-companion/releases/latest).
 Sideload `tidyTIVI-companion.apk` on an Android-based Fire TV with TiviMate already
-installed and activated. Save the cloud download link once. Use companion 0.5.0 or later for Google Drive. On first use,
+installed and activated. Save the Dropbox download link once. On first use,
 allow the app's requested file access. Press **Update TiviMate**: it downloads
 and verifies the bundle, installs all files, scans logos, and opens TiviMate's
 native restore prompt. Confirm Restore there. TiviMate also needs permission
@@ -107,9 +108,12 @@ folder. Companion source and build instructions are maintained in
 
 ## Verification and limits
 
-Version 0.5.0 passed 33 automated tests. Export, restore, logos, profile categories,
+Version 0.5.1 passed 36 automated tests. Two real exports uploaded to Dropbox with
+the same download link. Companion 0.5.0 downloaded the cloud bundle on an unrooted
+Android TV emulator and opened the native restore confirmation. All 823 installed
+payload files matched manifest sizes and SHA-256 hashes. Export, restore, logos, profile categories,
 live playback, populated EPG, native Movies/Series and episode lookup were checked
 on an unrooted Android TV emulator running TiviMate 5.3.3. Corrupted bundle
 downloads were rejected while preserving the prior installation. Physical Fire
-TV hardware and a connected Dropbox upload still need end-to-end verification.
+TV hardware still needs end-to-end verification.
 The companion opens TiviMate’s Restore prompt; confirmation remains required.

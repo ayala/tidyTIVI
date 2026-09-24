@@ -150,16 +150,20 @@ def summary(job):
 
 class Plugin:
     def __init__(self):
-        # Every web worker discovers plugins at startup. Keep callback registration
-        # separate from action authorization; the callback requires one-time state.
+        # Remove the retired v0.5.0 callback when a running worker reloads us.
         try:
-            from django.conf import settings
-            if getattr(settings, 'SECRET_KEY', ''):
-                from .cloud_routes import install
-                install()
-        except Exception:
-            import logging
-            logging.getLogger(__name__).debug('Cloud callback not installed in this process.')
+            import sys
+            api_urls = sys.modules.get('apps.plugins.api_urls')
+            if api_urls is None or not hasattr(api_urls, 'urlpatterns'):
+                return
+            from django.urls import clear_url_caches
+            previous = api_urls.urlpatterns
+            kept = [p for p in previous if getattr(p, 'name', None) != 'tidytivi-cloud-callback']
+            if len(kept) != len(previous):
+                previous[:] = kept
+                clear_url_caches()
+        except ImportError:
+            pass
 
     @property
     def fields(self):
@@ -203,20 +207,25 @@ class Plugin:
         ])
         # Preserve legacy authorization before the settings UI can omit hidden fields.
         from apps.plugins.models import PluginConfig
-        from .dropbox_upload import migrate_auth
+        from .dropbox_upload import migrate_auth, prepare_settings, connection_status
         saved_config = PluginConfig.objects.filter(key='tidytivi').first()
         if saved_config:
             migrate_auth(saved_config.settings or {})
+            if (saved_config.settings or {}).get('cloud_provider') == 'drive':
+                saved_config.settings = prepare_settings(saved_config.settings)
+                saved_config.save(update_fields=['settings'])
         old = (saved_config.settings or {}) if saved_config else {}
         fields.extend([
-            {'id':'cloud_provider','label':'Cloud storage','type':'select','default':'dropbox',
-             'options':[{'value':'dropbox','label':'Dropbox'},{'value':'drive','label':'Google Drive'}]},
-            {'id':'cloud_upload','label':'Upload after export','type':'boolean','default':enabled(old.get('dropbox_upload',False)),
-             'help_text':'Keep the cloud bundle up to date for your Firestick. Its unlisted download link grants access to exported accounts; keep it private.'},
-            {'id':'cloud_filename','label':'Bundle filename','type':'string','default':Path(old.get('dropbox_path') or '/tidytivi-latest.zip').name,
-             'help_text':'Use a different .zip filename for each recipient. Updates keep the same download link.'},
-            {'id':'cloud_setup','label':'Cloud connection','type':'info',
-             'value':'Save your cloud choice, then click Connect cloud storage and approve access in your browser. Initial app registration is required once; see CLOUD-SETUP.md. On an internal HTTP server, open the temporary localhost connection on your Mac first.'}
+            {'id':'cloud_upload','label':'Upload after export','type':'boolean','default':enabled(old.get('cloud_upload',old.get('dropbox_upload',False))),
+             'help_text':'Update your Dropbox bundle after export. Keep its download link private: the bundle contains exported account credentials.'},
+            {'id':'cloud_filename','label':'Bundle filename','type':'string','default':old.get('cloud_filename') or Path(old.get('dropbox_path') or '/tidytivi-latest.zip').name,
+             'help_text':'Use a different .zip filename for each recipient. Updates retain the same download link.'},
+            {'id':'dropbox_guide','label':'Dropbox setup guide','type':'info',
+             'value':'Step-by-step instructions: https://github.com/ayala/tidyTIVI/blob/main/CLOUD-SETUP.md#plugin-users — users do not register an app or configure a tunnel.'},
+            {'id':'dropbox_connection','label':'Dropbox connection','type':'info','value':connection_status(old)},
+            {'id':'dropbox_auth_code','label':'One-time connection code','type':'string','input_type':'password','default':'',
+             'help_text':'First open Actions → Connect Dropbox. Approve access, paste the displayed code here and save. Then open Actions → Finish connection.'}
+
         ])
 
         return fields
@@ -224,18 +233,11 @@ class Plugin:
     def run(self, action, params, context):
         settings = context.get('settings', {})
         try:
-            if action == 'cloud_connect':
-                from .cloud_auth import begin
-                from .cloud_routes import install
-                install()
-                return {'status':'ok','message':'Open this link to sign in and approve access. You will return automatically; no code needs to be pasted.\n'+begin(settings)}
-            if action == 'cloud_status':
-                from .cloud_auth import status
-                return {'status':'ok','message':status(settings)}
-            if action == 'dropbox_connect':
-                from .dropbox_upload import connect
-                return {'status':'ok','message':connect(settings)}
-            if action == 'dropbox_status':
+            if action in ('cloud_connect', 'dropbox_connect', 'dropbox_finish', 'dropbox_cancel'):
+                from .dropbox_upload import connect, cancel_connection
+                message = cancel_connection(settings) if action == 'dropbox_cancel' else connect(settings, finish=action == 'dropbox_finish')
+                return {'status':'ok','message':message}
+            if action in ('cloud_status', 'dropbox_status'):
                 from .dropbox_upload import connection_status
                 return {'status':'ok','message':connection_status(settings)}
             if action not in ('preview', 'export_job', 'export_backups'):
@@ -247,24 +249,17 @@ class Plugin:
                 report['backups'] = export_backups(job, settings)
                 missing=report['backups'][0]['logos'].get('missing_assigned_logos',[])
                 if missing:report['warnings'].append(str(len(missing))+' assigned logo URLs could not be downloaded; channels and complete country folders were retained. See missing_assigned_logos.')
-                if enabled(settings.get('cloud_upload',settings.get('dropbox_upload',False))):
-                    from .cloud_auth import provider
-                    which=provider(settings)
+                if settings.get('cloud_provider') != 'drive' and enabled(settings.get('cloud_upload',settings.get('dropbox_upload',False))):
                     try:
-                        if which=='drive':
-                            from .drive_upload import upload_bundle
-                            report['cloud']=upload_bundle(report['backups'][0]['bundle'],settings)
-                        else:
-                            from .dropbox_upload import upload_bundle
-                            options=dict(settings)
-                            if settings.get('cloud_filename'):
-                                name=str(settings['cloud_filename'])
-                                if '/' in name or '\\' in name or not name.endswith('.zip'):
-                                    raise ValueError('Bundle filename must be a .zip filename without folders.')
-                                # Retain the folder used by older Dropbox setups.
-                                from pathlib import PurePosixPath
-                                options['dropbox_path']=str(PurePosixPath(settings.get('dropbox_path') or '/tidytivi-latest.zip').parent/name)
-                            report['cloud']=upload_bundle(report['backups'][0]['bundle'],options)
+                        from .dropbox_upload import upload_bundle
+                        options=dict(settings)
+                        if settings.get('cloud_filename'):
+                            name=str(settings['cloud_filename'])
+                            if '/' in name or '\\' in name or not name.endswith('.zip'):
+                                raise ValueError('Bundle filename must be a .zip filename without folders.')
+                            from pathlib import PurePosixPath
+                            options['dropbox_path']=str(PurePosixPath(settings.get('dropbox_path') or '/tidytivi-latest.zip').parent/name)
+                        report['cloud']=upload_bundle(report['backups'][0]['bundle'],options)
                     except ValueError as exc:
                         report['cloud']={'status':'error','message':str(exc)}
                         report['warnings'].append('Local export succeeded, but cloud publication failed.')
