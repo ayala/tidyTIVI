@@ -9,6 +9,33 @@ import sys
 from datetime import datetime, timezone
 
 
+def announce(state):
+    """Use Dispatcharr's supported notification API; failures never stop exports."""
+    try:
+        from core.models import SystemNotification
+        from core.utils import send_websocket_notification
+        title = {'running': 'tidyTIVI · Export in progress',
+                 'complete': 'tidyTIVI · Export complete',
+                 'failed': 'tidyTIVI · Export failed'}[state['state']]
+        notification, _ = SystemNotification.objects.update_or_create(
+            notification_key='tidytivi-export', defaults={
+                'title': title, 'message': state['message'],
+                'notification_type': 'warning' if state['state'] == 'failed' else 'info',
+                'priority': 'high', 'admin_only': True, 'is_active': True,
+                'expires_at': None, 'action_data': {}})
+        notification.dismissals.all().delete()
+        send_websocket_notification({
+            'id': notification.pk, 'notification_key': notification.notification_key,
+            'title': notification.title, 'message': notification.message,
+            'notification_type': notification.notification_type,
+            'priority': notification.priority, 'admin_only': True,
+            'is_active': True, 'is_dismissed': False, 'action_data': {},
+            'created_at': notification.created_at.isoformat()})
+    except Exception:
+        import logging
+        logging.getLogger(__name__).warning('tidyTIVI export notification could not be delivered; status remains available.')
+
+
 def write(path, value):
     temporary = path.with_suffix('.tmp')
     with open(temporary, 'w', opener=lambda p, flags: os.open(p, flags, 0o600)) as handle:
@@ -55,7 +82,7 @@ def start(settings):
         fcntl.flock(lock, fcntl.LOCK_EX)
         state = read(directory)
         if state['state'] == 'running':
-            return {'status': 'ok', 'message': 'An export is already running. Use Export status or Docs to check progress.'}
+            return {'status': 'ok', 'message': 'An export is already running. Progress and completion appear automatically in Dispatcharr notifications.'}
         request = {'settings': settings, 'django_settings': django_settings.SETTINGS_MODULE,
                    'project_root': str(django_settings.BASE_DIR)}
         write(directory / 'request.json', request)
@@ -69,8 +96,8 @@ def start(settings):
             raise ValueError('Could not start the background export process.') from None
         write(directory / 'status.json', {'state': 'running', 'pid': process.pid,
             'started_at': datetime.now(timezone.utc).isoformat(),
-            'message': 'Export running: loading the complete XC catalog. Use Export status or Docs to check progress.'})
-    return {'status': 'ok', 'message': 'Export started in the background. You can close this page. Use Export status or Docs to check progress.'}
+            'message': 'Export running: loading the complete XC catalog. Progress and completion appear automatically in Dispatcharr notifications.'})
+    return {'status': 'ok', 'message': 'Export started in the background. You can close this page. Progress and completion appear automatically in Dispatcharr notifications.'}
 
 
 def run(directory):
@@ -82,11 +109,13 @@ def run(directory):
     def progress(message):
         state['message'] = message
         write(directory / 'status.json', state)
+        announce(state)
     try:
         os.environ['DJANGO_SETTINGS_MODULE'] = request['django_settings']
         sys.path.insert(0, request['project_root'])
         import django
         django.setup()
+        announce(state)
         import importlib.util
         package = Path(__file__).resolve().parent
         spec = importlib.util.spec_from_file_location('_tidytivi_worker', package / '__init__.py', submodule_search_locations=[str(package)])
@@ -114,6 +143,7 @@ def run(directory):
         state.update(state='failed', message='Background export failed. Check server availability and retry. Your previous cloud bundle remains available.')
     state['finished_at'] = datetime.now(timezone.utc).isoformat()
     write(directory / 'status.json', state)
+    announce(state)
 
 
 if __name__ == '__main__':
