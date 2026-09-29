@@ -247,9 +247,16 @@ class Plugin:
 
         return fields
 
-    def run(self, action, params, context):
+    def run(self, action, params, context, _background=False):
         settings = context.get('settings', {})
         try:
+            if action == 'export_status':
+                from .background_export import status
+                return status(settings)
+            if action == 'export_backups' and not _background:
+                from .background_export import start
+                return start(settings)
+            progress = context.get('progress', lambda message: None)
             if action == 'companion_link':
                 from .dropbox_upload import companion_link
                 url = companion_link(settings)
@@ -273,6 +280,7 @@ class Plugin:
             report = summary(job)
             if action == 'export_backups':
                 from .exporter import export_backups
+                progress('Export running: building the backup and complete logo bundle.')
                 report['backups'] = export_backups(job, settings)
                 missing=report['backups'][0]['logos'].get('missing_assigned_logos',[])
                 if missing:report['warnings'].append(str(len(missing))+' assigned logo URLs could not be downloaded; channels and complete country folders were retained. See missing_assigned_logos.')
@@ -286,6 +294,7 @@ class Plugin:
                                 raise ValueError('Bundle filename must be a .zip filename without folders.')
                             from pathlib import PurePosixPath
                             options['dropbox_path']=str(PurePosixPath(settings.get('dropbox_path') or '/tidytivi-latest.zip').parent/name)
+                        progress('Export running: uploading the bundle to Dropbox.')
                         report['cloud']=upload_bundle(report['backups'][0]['bundle'],options)
                     except ValueError as exc:
                         report['cloud']={'status':'error','message':str(exc)}

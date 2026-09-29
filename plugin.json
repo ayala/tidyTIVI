@@ -1,6 +1,6 @@
 {
   "name": "tidyTIVI",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "One curated TiviMate backup, complete country logos, recipient credentials and Dropbox updates.",
   "author": "ayala",
   "license": "MIT",
@@ -21,6 +21,14 @@
       "button_label": "Export bundle",
       "description": "Export all selected profiles together, with country logo folders and a companion update bundle.",
       "button_variant": "filled",
+      "button_color": "blue"
+    },
+    {
+      "id": "export_status",
+      "label": "Export status",
+      "button_label": "Export status",
+      "description": "Check background export and Dropbox upload progress.",
+      "button_variant": "outline",
       "button_color": "blue"
     },
     {
