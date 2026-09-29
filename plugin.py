@@ -52,7 +52,7 @@ def build_job(settings):
                         'playlist_name': str(settings.get('playlist_name') or 'tidyTIVI'),
                         'include_subgroups': enabled(settings.get('include_subgroups', True)),
                         'uppercase_groups': enabled(settings.get('uppercase_groups', False)),
-                        'provider_vod': enabled(settings.get('vod', True))},
+                        'provider_vod': True},
            'warnings': []}
     from .accounts import catchup_hours
     accounts, sources = {}, {}
@@ -122,11 +122,12 @@ def build_job(settings):
         job['logo_repository'] = {'repository': saved.get('github_repository', ''),
             'folders': [{'profile': p['name'], **mappings[p['name'].casefold()]}
                         for p in job['profiles'] if p['name'].casefold() in mappings]}
-    if job['settings']['provider_vod']:
-        from .vod import collect_vod
-        job['vod'] = collect_vod(settings, accounts)
-    else:
-        job['vod'] = {'movies':[], 'series':[]}
+    # Include every selected XC account, even if it supplies no live channels.
+    from apps.m3u.models import M3UAccount
+    for account in M3UAccount.objects.filter(account_type='XC', is_active=True).order_by('pk'):
+        if enabled(settings.get(f'account_{account.pk}', False)):
+            accounts[account.pk] = {'id': account.pk, 'name': account.name,
+                'server_url': account.server_url, 'username': account.username, 'password': account.password}
     job['accounts'] = list(accounts.values())
     job['epg_sources'] = sorted(sources.values(), key=lambda s: (-s['priority'], s['id']))
     if fallback_count:
@@ -134,11 +135,14 @@ def build_job(settings):
     job['warnings'].extend([
         'Native export targets TiviMate 5.3.3 and requires a privately provisioned template and codec seed.',
         'Install the exported logo pack on the receiver. Update all selected profiles together through tidyTIVI; restoring replaces the TiviMate configuration.',
-        'VOD is a snapshot of current curation; tidyVOD scanning continues on Dispatcharr. Automatic stream fallback is not included.',
+        'Movies and series use the complete original XC catalogue, with native TiviMate updates. Dispatcharr VOD curation is not applied. Automatic stream fallback is not included.',
         'Original channel numbers require the optional name prefix; native custom numbering is not verified.'
     ])
     from .accounts import apply_overrides
-    return apply_overrides(job, settings)
+    apply_overrides(job, settings)
+    from .vod import collect_vod
+    job['vod'] = collect_vod(job['accounts'])
+    return job
 
 
 def summary(job):
@@ -202,7 +206,6 @@ class Plugin:
         for key, label, default, help_text in [
             ('profile_playlists', 'One playlist per profile', True, 'Each profile contains its own curated channel categories. All selected profiles still share one backup; mixed providers stay combined within each profile.'),
             ('include_subgroups', 'Include curated subgroups in combined mode', True, 'Add groups such as DirecTV · Sports alongside the full DirecTV, Sky and Movistar Plus groups.'),
-            ('vod', 'Export curated VOD', True, 'Include current curated movies and series from enabled categories of the selected providers. New content is included on the next export.'),
             ('uppercase_groups', 'ALL CAPS channel groups', False, 'Uppercase exported live-TV category names. Channel names, profile playlist names and Dispatcharr stay unchanged.'),
             ('names', 'Use curated channel names', True, 'Custom groups and channel ordering are always exported.'),
             ('logos', 'Export assigned logos', True, 'Includes entire tidyCH country folders plus exact assigned channel images for the receiver.'),

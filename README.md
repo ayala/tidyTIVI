@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.7
+# tidyTIVI 0.5.8
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -14,7 +14,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.7.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.7/tidyTIVI-0.5.7.zip)
+or download [tidyTIVI-0.5.8.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.8/tidyTIVI-0.5.8.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -31,10 +31,12 @@ Python environment. Native export also requires the private provisioning below.
   in both the backup and local M3U playlists. Replacement XC accounts use their
   own advertised archive support. EPG history and actual archive playback still
   depend on the guide feed and provider.
-- Curated VOD is enabled by default. Current enabled Dispatcharr movie/series
-  categories, cleaned titles and assigned artwork are copied. VOD-only XC
-  connections retain native Movies/Series and episode lookup without splitting
-  the live-TV groups. Provider account selection scopes both live TV and VOD.
+- Full original XC Movies and Series are always included from each selected
+  provider, using the recipient credentials when supplied. Dispatcharr VOD
+  filters, renamed categories, titles and artwork are not applied. VOD-only XC
+  playlists retain provider category IDs and enable native playlist updates,
+  including newly added categories. There is no curated VOD toggle.
+  Provider account selection scopes both live TV and VOD.
   An unselected provider is never used as a fallback. Profiles with no usable
   assigned streams are omitted and explicitly reported; a fully empty live
   selection stops the export. Replacement credentials apply to both live and VOD.
@@ -93,11 +95,16 @@ so export all profiles you want together.
 Files are installed under `/sdcard/Download/tidyTIVI/current`. The included local
 `lineup.m3u` and profile-specific `lineup-ID.m3u` files make the live playlists independent of both internal
 Dispatcharr and an always-running companion service. Update curation through
-Dispatcharr → Export → companion Update. Automatic provider playlist refresh is
-disabled. A manual refresh may overwrite VOD curation or channel settings.
+Dispatcharr → Export → companion Update. Automatic refresh is disabled for the
+curated live playlists and enabled for the separate native XC VOD playlists.
+Movies and series update directly from the provider in TiviMate; no new export
+or companion update is needed for new provider content. Series episodes are
+resolved through the provider when opened. TiviMate must run and refresh its
+playlists to receive updates.
 
-VOD scanning/rules stay on Dispatcharr. The receiver gets a fresh snapshot each
-export; series episodes are resolved through their provider when opened. Native
+Dispatcharr/tidyVOD curation remains local. Testing in TiviMate 5.3.3 showed
+that changing an original VOD category's name in a backup is overwritten on
+playlist refresh. tidyTIVI therefore preserves original provider names. Native
 fallback streams are not added. Original channel numbers use the optional name
 prefix; reliable custom native numbering has not been established.
 
