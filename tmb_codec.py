@@ -1,11 +1,12 @@
-"""TiviMate 5.3.3 codec for a privately provisioned header/key pair.
+"""TiviMate 5.3.3 authenticated backup-envelope codec.
 
-This is NOT a universal decoder: backups with a different salt require their
-own key. Reuse the provisioned salt and a fresh random CTR IV for each export.
-No Android runtime is required. Do not commit or publicly distribute seed files.
+Native v1 backups use PBKDF2-HMAC-SHA256 with a per-file salt and a format
+salt suffix, AES-256-CTR and HMAC-SHA256. Legacy provisioned seeds remain
+supported for existing installations. Never distribute user seed files.
 """
 import io
 import hmac
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -51,3 +52,25 @@ def encode(payload, seed):
     encryptor = Cipher(algorithms.AES(key), modes.CTR(iv)).encryptor()
     body = header + iv + encryptor.update(payload) + encryptor.finalize()
     return body + hmac.digest(key, body, 'sha256')
+
+
+def derive_seed(blob):
+    """Derive a key from a v1 envelope without a device or account seed."""
+    from .tmb_format import PASSWORD_UTF16_HEX, SALT_SUFFIX_HEX
+    if len(blob) < 69 or blob[0] != 1:
+        raise ValueError('Unsupported TiviMate envelope.')
+    iterations = int.from_bytes(blob[17:21], 'big')
+    if iterations != 100000:
+        raise ValueError('Unsupported TiviMate derivation parameters.')
+    password = bytes.fromhex(PASSWORD_UTF16_HEX).decode('utf-16le').encode('utf-8')
+    key = hashlib.pbkdf2_hmac('sha256', password, blob[1:17] + bytes.fromhex(SALT_SUFFIX_HEX), iterations, 32)
+    return blob[:21], key
+
+
+def decode_native(blob):
+    return decode(blob, derive_seed(blob))
+
+
+def encode_native(payload):
+    header = b'\x01' + os.urandom(16) + (100000).to_bytes(4, 'big')
+    return encode(payload, derive_seed(header + bytes(48)))

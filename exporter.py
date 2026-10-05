@@ -80,7 +80,7 @@ def export_backups(job, settings):
             manifest={'schema':'tidytivi.bundle.v1','version':job['id'],'created_at':job['created_at'],
                 'backup':'tidytivi.tmb','target_version':'5.3.3','receiver_root':RECEIVER_ROOT,
                 'profiles':[{'name':p['name'],'channels':len(p['channels'])} for p in job['profiles']],
-                'files':{}}
+                'group_mappings':report['group_mappings'],'files':{}}
             for path in sorted(staging.rglob('*')):
                 if path.is_file():manifest['files'][path.relative_to(staging).as_posix()]={'bytes':path.stat().st_size,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
             write_private(staging/'manifest.json',json.dumps(manifest,indent=2).encode())

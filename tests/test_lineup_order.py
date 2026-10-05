@@ -22,7 +22,7 @@ class LineupOrderTests(unittest.TestCase):
                 def channel(i,name,group):
                     return dict(id=i,name=name,number=str(i*10),group_id=group,group_name='Group '+str(group),provider_name=name,provider_url='https://example.test/'+str(i),logo_url=None,epg=None)
                 job=dict(schema='tidytivi.job.v1',target_version='5.3.3',epg_sources=[],accounts=[],vod={'movies':[],'series':[]},settings=dict(uppercase_groups=caps,profile_playlists=separate,names=True,number_prefix=False,provider_vod=False),profiles=[dict(id=1,name='One',display_name='Custom One',group_prefix='US:',channels=[channel(1,'Zulu',1),channel(2,'Alpha',2),channel(3,'Mike',1)]),dict(id=2,name='Two',channels=[channel(4,'Beta',3)])])
-                output=Path(directory)/'output.db';prepare(job,baseline,output)
+                output=Path(directory)/'output.db';report=prepare(job,baseline,output)
                 with sqlite3.connect(output) as db:
                     # TiviMate All channels uses ascending playlist positions.
                     self.assertEqual([r[0] for r in db.execute('SELECT custom_name FROM channels ORDER BY playlist_id,position_in_playlist,id')],['Zulu','Alpha','Mike','Beta'])
@@ -30,6 +30,12 @@ class LineupOrderTests(unittest.TestCase):
                         positions=[r[0] for r in db.execute('SELECT position_in_playlist FROM channels WHERE playlist_id=? ORDER BY position_in_playlist',(pid,))]
                         self.assertEqual(positions,list(range(len(positions))))
                     if separate: self.assertEqual(db.execute('SELECT name FROM playlists ORDER BY position').fetchall(), [('Custom One',),('Two',)])
+                    mappings=report['group_mappings']
+                    self.assertEqual(len(mappings),db.execute('SELECT count(*) FROM channel_groups').fetchone()[0])
+                    self.assertEqual(len({(m['playlist'],m['key']) for m in mappings}),len(mappings))
+                    for m in mappings:
+                        self.assertEqual(db.execute('SELECT name FROM channel_groups WHERE id=?',(m['id'],)).fetchone()[0],m['name'])
+                    self.assertIn('1:1',{m['key'] for m in mappings})
                     groups=db.execute("SELECT id,name FROM channel_groups").fetchall()
                     if caps: self.assertTrue(all(name==name.upper() for _,name in groups))
                     else: self.assertTrue(any("Group" in name for _,name in groups))

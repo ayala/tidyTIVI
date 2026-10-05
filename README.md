@@ -1,9 +1,11 @@
-# tidyTIVI 0.5.10
+# tidyTIVI 0.5.11
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
 export works. They are not distributed in this repository; this is an experimental
-release for provisioned installations, not a universal backup decoder.
+release for provisioned installations. The research codec now also supports
+independently generated 5.3.3 backups; exporter template provisioning remains
+required.
 
 ## Install in Dispatcharr
 
@@ -14,7 +16,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.10.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.10/tidyTIVI-0.5.10.zip)
+or download [tidyTIVI-0.5.11.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.11/tidyTIVI-0.5.11.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -186,3 +188,22 @@ Save the settings and export a fresh bundle, then update and restore on the rece
 **Export bundle** starts a background process so a large XC catalog or Dropbox upload cannot time out the browser request. Use **Actions → Export status**, or open **Docs** for automatically refreshed progress. A second click while an export is running does not start another export. Wait for **Export complete / Dropbox updated** before updating the companion. Restarting Dispatcharr interrupts an active export; start it again afterward.
 
 Export stages and completion/failure appear automatically as Dispatcharr popups. The latest export status is also retained in the notification bell for administrators, including after a page reload. You do not need to run Export status to receive completion.
+
+## Preserving receiver history (companion preview)
+
+Plugin 0.5.11 includes stable profile/category identities for the
+[0.7.0-rc.1 companion preview](https://github.com/ayala/tidyTIVI-companion/releases/tag/v0.7.0-rc.1).
+The preview updates existing tidyTIVI playlists in place using a fresh receiver
+backup, preserving favorites, watch progress, hidden playlists/groups and
+personal preferences. Dispatcharr curation and the account supplied in the
+export take precedence. Matching VOD uses the provider's native XC IDs; titles
+unavailable to the exported account retain their stored history but are hidden
+by TiviMate. Different providers' IDs are not interchangeable.
+
+The flow remains export → Dropbox → companion Update → native TiviMate Restore.
+Automatic backup needs one-time Android Accessibility permission. There is no
+manual backup selection on each update. The preview targets English TiviMate
+5.3.3 and existing tidyTIVI profile playlists; ambiguous matches stop the update.
+Physical Firestick accessibility setup is not verified. The stable 0.6.1
+companion still uses replacement restore; installing plugin 0.5.11 alone does
+not add preservation to that older APK.

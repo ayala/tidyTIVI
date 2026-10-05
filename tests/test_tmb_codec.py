@@ -28,3 +28,18 @@ class CodecTests(unittest.TestCase):
         with self.assertRaises(ValueError):encode(b'not a backup',self.seed)
 
 if __name__=='__main__':unittest.main()
+
+class NativeCodecTests(unittest.TestCase):
+    def test_native_roundtrip_uses_new_salts_and_authenticates(self):
+        from tidyTIVI.tmb_codec import encode_native, decode_native
+        payload=io.BytesIO()
+        with zipfile.ZipFile(payload,'w') as z:z.writestr('TvPlayer.db',b'synthetic fixture')
+        first=encode_native(payload.getvalue());second=encode_native(payload.getvalue())
+        self.assertNotEqual(first[1:17],second[1:17])
+        self.assertEqual(decode_native(first),payload.getvalue())
+        corrupt=bytearray(first);corrupt[40]^=1
+        with self.assertRaises(ValueError):decode_native(bytes(corrupt))
+
+    def test_unbounded_work_factor_is_rejected(self):
+        from tidyTIVI.tmb_codec import derive_seed
+        with self.assertRaises(ValueError):derive_seed(b'\x01'+bytes(16)+(2**31).to_bytes(4,'big')+bytes(48))

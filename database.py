@@ -93,7 +93,7 @@ def prepare(job, baseline, output):
         total = sum(len(profile['channels']) for profile in job['profiles'])
         separate = job['settings'].get('profile_playlists', True)
         batches = [(profile_name(p), [p], 'lineup-'+str(p['id'])+'.m3u') for p in job['profiles'] if p['channels']] if separate else [(job['settings'].get('playlist_name') or 'tidyTIVI', job['profiles'], 'lineup.m3u')]
-        report = {'profiles': [], 'channels': total, 'catchup_channels': sum(c.get('catchup_hours',0)>0 for p in job['profiles'] for c in p['channels']), 'playlists': len(batches), 'epg_sources': len(source_ids)}
+        report = {'group_mappings': [], 'profiles': [], 'channels': total, 'catchup_channels': sum(c.get('catchup_hours',0)>0 for p in job['profiles'] for c in p['channels']), 'playlists': len(batches), 'epg_sources': len(source_ids)}
         for playlist_position,(name,profiles,filename) in enumerate(batches):
             count = sum(len(p['channels']) for p in profiles)
             archive_hours=max((c.get('catchup_hours',0) for p in profiles for c in p['channels']),default=0)
@@ -112,20 +112,21 @@ def prepare(job, baseline, output):
                 insert(db,'playlist_tvg_source_assignments',{'playlist_id':pid,'tvg_source_id':source_ids[source['id']],'priority':priority})
             group_number = 0
             position = 0
-            def group(name):
+            def group(name, stable_key):
                 nonlocal group_number
                 gid=insert(db,'channel_groups',{'playlist_id':pid,'name':channel_group_name(job,name),'is_custom':1,'position_in_playlist':group_number})
                 insert(db,'channel_group_options',{'type':4,'playlist_id':pid,'group_id':gid,'sorting':5,'prev_sorting':1,'is_visible':1,'are_favorites_only':0,'manual_position':group_number})
+                report['group_mappings'].append({'playlist':filename,'key':stable_key,'id':gid,'name':channel_group_name(job,name)})
                 group_number+=1
                 return gid
             for profile in profiles:
-                profile_gid = None if separate else group(profile_name(profile))
+                profile_gid = None if separate else group(profile_name(profile),str(profile['id'])+':profile')
                 subgroups = {}
                 for local_position,ch in enumerate(profile['channels']):
                     group_ids = [] if separate else [profile_gid]
                     if separate or job['settings'].get('include_subgroups', True):
                         if ch['group_id'] not in subgroups:
-                            subgroups[ch['group_id']]=group(profile_group_name(profile,ch['group_name']) if separate else profile_name(profile)+' · '+profile_group_name(profile,ch['group_name']))
+                            subgroups[ch['group_id']]=group(profile_group_name(profile,ch['group_name']) if separate else profile_name(profile)+' · '+profile_group_name(profile,ch['group_name']),str(profile['id'])+':'+str(ch['group_id']))
                         group_ids.append(subgroups[ch['group_id']])
                     curated = ch['name'] if job['settings']['names'] else ch['provider_name']
                     if job['settings']['number_prefix']:
