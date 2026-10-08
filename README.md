@@ -22,6 +22,39 @@ accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
 Python environment. Native export also requires the private provisioning below.
 
+## Source selection and XC priority
+
+**XC priority is an order, not a rating, percentage or channel limit.** The default
+`100` is just a starting value. It only matters when a curated channel has assigned
+streams from more than one enabled XC provider:
+
+- Lower numbers win: Trex `1` is preferred over Strong `2`.
+- Equal numbers follow that channel’s Dispatcharr stream order.
+- With only one XC provider enabled, leaving `100` is fine.
+- Disabled providers are never selected, regardless of their priority number.
+
+Selected XC streams take precedence over direct M3U/custom streams. If no selected
+XC stream is assigned, tidyTIVI uses an eligible direct stream in Dispatcharr
+stream order. This choice happens during export; it is not playback failover.
+
+**Include provider: custom** controls standalone, manually added streams.
+Dispatcharr creates a locked internal `custom` account for these one-off URLs;
+it is not an M3U playlist that you have to create or import. Leave this toggle
+and **Include custom and M3U fallback streams** enabled to include those channels
+when they belong to your selected profiles. Streams stored without any account
+are also eligible when the fallback setting is enabled.
+
+When adding another FAST M3U source (for example GL or Rakuten), assign its streams
+to channels in your Dispatcharr profiles, reopen tidyTIVI settings, enable that
+source’s **Include provider** toggle, save, and export. Sources are discovered
+dynamically; provider names are not hardcoded. Only the channels in your selected
+profiles are exported, not the entire FAST catalogue. The unfiltered **Master**
+playlist option applies to XC providers only.
+
+Direct streams retain their external URLs and do not use the export XC credentials
+or Dispatcharr’s playback proxy. Known private/local addresses are excluded; the
+URLs must work from the receiving device’s network.
+
 ## What the export contains
 
 - One live playlist per profile: DirecTV, Sky, Movistar Plus. Each contains its
