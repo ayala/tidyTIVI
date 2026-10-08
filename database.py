@@ -158,6 +158,8 @@ def prepare(job, baseline, output):
                 report['profiles'].append({'name':profile['name'],'channels':len(profile['channels'])})
         from .vod import add_vod
         report['vod'] = add_vod(db, job, playlist_template, insert)
+        from .master import add_masters
+        report['provider_masters'] = add_masters(db, job, playlist_template, channel_template, insert)
         if db.execute('PRAGMA foreign_key_check').fetchone():
             raise ValueError('Generated database failed its foreign-key check.')
         if db.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':

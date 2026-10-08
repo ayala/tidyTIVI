@@ -27,10 +27,40 @@ def atomic_json(path, data):
 
 
 def select_stream(links, settings):
-    """Respect assigned priority within the explicitly selected providers."""
-    return next((link.stream for link in links
-                 if not getattr(link.stream, 'is_stale', False) and link.stream.m3u_account and
-                 enabled(settings.get(f'account_{link.stream.m3u_account.pk}', False))), None)
+    """Prefer selected XC providers, then selected M3U/custom direct sources."""
+    available = [link.stream for link in links if not getattr(link.stream, 'is_stale', False)]
+    def selected(stream):
+        account = stream.m3u_account
+        return account and enabled(settings.get(f'account_{account.pk}', False))
+    xc = [stream for stream in available if selected(stream) and getattr(stream.m3u_account, 'account_type', 'XC') == 'XC']
+    def priority(stream):
+        raw = str(settings.get(f'priority_{stream.m3u_account.pk}', '100')).strip()
+        try: return int(raw)
+        except ValueError: raise ValueError('XC provider priority must be a whole number.') from None
+    if xc: return min(xc, key=priority)
+    if not enabled(settings.get('include_direct_streams', True)): return None
+    direct = [stream for stream in available if stream.m3u_account is None or
+              (selected(stream) and getattr(stream.m3u_account, 'account_type', 'XC') != 'XC')]
+    return next((stream for stream in direct if not direct_stream_problem(getattr(stream, 'url', None))),
+                direct[0] if direct else None)
+
+
+def direct_stream_problem(url):
+    from urllib.parse import urlsplit
+    import ipaddress
+    try:
+        parsed = urlsplit(url)
+        if parsed.scheme not in ('http', 'https') or not parsed.hostname:
+            return 'Direct stream needs a remotely usable HTTP(S) URL'
+        host = parsed.hostname.lower()
+        if host == 'localhost' or host.endswith('.local') or host.endswith('.lan'):
+            return 'Direct stream uses a local address unavailable to remote receivers'
+        try:
+            if not ipaddress.ip_address(host).is_global:
+                return 'Direct stream uses a local/private address unavailable to remote receivers'
+        except ValueError: pass
+    except (ValueError, TypeError): return 'Invalid direct stream URL'
+    return None
 
 
 def build_job(settings):
@@ -52,7 +82,8 @@ def build_job(settings):
                         'playlist_name': str(settings.get('playlist_name') or 'tidyTIVI'),
                         'include_subgroups': enabled(settings.get('include_subgroups', True)),
                         'uppercase_groups': enabled(settings.get('uppercase_groups', False)),
-                        'provider_vod': True},
+                        'provider_vod': True,
+                        'include_provider_master': enabled(settings.get('include_provider_master', True))},
            'warnings': []}
     from .accounts import catchup_hours
     accounts, sources = {}, {}
@@ -71,16 +102,23 @@ def build_job(settings):
             stream = select_stream(links, settings)
             if stream is None:
                 excluded.append({'id': ch.pk, 'name': ch.name, 'number': str(ch.channel_number),
-                                 'reason': 'No non-stale assigned stream from a selected provider'})
+                                 'reason': 'No usable assigned XC, selected M3U or custom stream'})
                 continue
             if stream.pk != links[0].stream.pk:
                 reassigned.append({'id': ch.pk, 'name': ch.name, 'number': str(ch.channel_number)})
             account = stream.m3u_account
-            if not account or account.account_type != 'XC' or not stream.stream_id:
-                raise ValueError(f'Channel {ch.pk}: selected stream must be an XC stream with a provider ID.')
-            accounts[account.pk] = {'id': account.pk, 'name': account.name,
-                'server_url': account.server_url, 'username': account.username,
-                'password': account.password}
+            is_xc = account is not None and account.account_type == 'XC'
+            if is_xc and not stream.stream_id:
+                raise ValueError(f'Channel {ch.pk}: selected XC stream has no provider ID.')
+            if not is_xc:
+                problem = direct_stream_problem(stream.url)
+                if problem:
+                    excluded.append({'id': ch.pk, 'name': ch.name, 'number': str(ch.channel_number), 'reason': problem})
+                    continue
+            else:
+                accounts[account.pk] = {'id': account.pk, 'name': account.name,
+                    'server_url': account.server_url, 'username': account.username,
+                    'password': account.password}
             fallback_count += max(0, len(links) - 1)
             guide = None
             if job['settings']['epg'] and ch.epg_data_id:
@@ -96,10 +134,11 @@ def build_job(settings):
             channels.append({'id': ch.pk, 'name': ch.name, 'number': str(ch.channel_number),
                 'group_id': ch.channel_group_id, 'group_name': ch.channel_group.name if ch.channel_group else 'Other',
                 'logo_url': ch.logo.url if ch.logo and job['settings']['logos'] else None,
-                'epg': guide, 'account_id': account.pk, 'xc_id': stream.stream_id,
+                'epg': guide, 'account_id': account.pk if is_xc else None, 'xc_id': stream.stream_id if is_xc else None,
+                'source_kind': 'xc' if is_xc else 'direct',
                 'provider_name': stream.name, 'provider_url': stream.url,
                 'provider_category_id': (stream.custom_properties or {}).get('category_id'),
-                'catchup_hours': catchup_hours(stream.custom_properties or {}),
+                'catchup_hours': catchup_hours(stream.custom_properties or {}) if is_xc else 0,
                 'fallback_count': max(0, len(links) - 1)})
         channels.sort(key=lambda c: (float(c['number']), c['id']))
         if not channels:
@@ -131,7 +170,9 @@ def build_job(settings):
     job['accounts'] = list(accounts.values())
     job['epg_sources'] = sorted(sources.values(), key=lambda s: (-s['priority'], s['id']))
     if fallback_count:
-        job['warnings'].append(f'{fallback_count} alternate stream assignments are not exported; only the first assigned stream from a selected provider is used.')
+        job['warnings'].append(f'{fallback_count} alternate stream assignments are not exported; only the preferred XC or fallback direct stream is used.')
+    if any(c.get('source_kind') == 'direct' for p in job['profiles'] for c in p['channels']):
+        job['warnings'].append('Direct M3U/custom URLs are exported unchanged. Expiring URLs may require a new export; Dispatcharr proxying and automatic fallback are not provided.')
     job['warnings'].extend([
         'Native export targets TiviMate 5.3.3 and requires a privately provisioned template and codec seed.',
         'Install the exported logo pack on the receiver. Update all selected profiles together through tidyTIVI; restoring replaces the TiviMate configuration.',
@@ -142,6 +183,9 @@ def build_job(settings):
     apply_overrides(job, settings)
     from .vod import collect_vod
     job['vod'] = collect_vod(job['accounts'])
+    if job['settings']['include_provider_master']:
+        from .master import collect_master
+        job['provider_masters'] = collect_master(job['accounts'])
     return job
 
 
@@ -151,6 +195,8 @@ def summary(job):
                           'reassigned_channels': p.get('reassigned_channels', [])} for p in job['profiles']],
             'epg_sources': [s['name'] for s in job['epg_sources']],
             'vod': {k:len(v) for k,v in job.get('vod',{}).items()},
+            'provider_masters': [{'account_id':m['account_id'], 'channels':len(m['channels'])} for m in job.get('provider_masters',[])],
+            'direct_channels': sum(c.get('source_kind') == 'direct' for p in job['profiles'] for c in p['channels']),
             'accounts': [a['name'] for a in job['accounts']], 'warnings': job['warnings']}
 
 
@@ -192,10 +238,11 @@ class Plugin:
         account_model = stream_model._meta.get_field('m3u_account').related_model
         fields.extend({'id': f'account_{a.pk}', 'label': f'Include provider: {a.name}',
                        'type': 'boolean', 'default': False,
-                       'help_text': 'Choose the first assigned stream from included providers; report channels with none.'}
-                      for a in account_model.objects.filter(account_type='XC').order_by('name'))
+                       'help_text': 'XC sources take priority. Selected non-XC M3U sources supply fallback custom/FAST streams.'}
+                      for a in account_model.objects.order_by('name'))
         for a in account_model.objects.filter(account_type='XC').order_by('name'):
             fields.extend([
+                {'id':f'priority_{a.pk}', 'label':f'XC priority: {a.name}', 'type':'string', 'default':'100', 'help_text':'Lower numbers are preferred. Equal priority preserves Dispatcharr stream order.'},
                 {'id':f'override_{a.pk}','label':f'Use different export credentials: {a.name}', 'type':'boolean','default':False,
                  'help_text':'Export only. The replacement account must expose the same mapped stream IDs; validated before export.'},
                 {'id':f'export_server_{a.pk}','label':f'{a.name} export server (optional)','type':'string','default':'',
@@ -207,6 +254,8 @@ class Plugin:
             ('profile_playlists', 'One playlist per profile', True, 'Each profile contains its own curated channel categories. All selected profiles still share one backup; mixed providers stay combined within each profile.'),
             ('include_subgroups', 'Include curated subgroups in combined mode', True, 'Add groups such as DirecTV · Sports alongside the full DirecTV, Sky and Movistar Plus groups.'),
             ('uppercase_groups', 'ALL CAPS channel groups', False, 'Uppercase exported live-TV category names. Channel names, profile playlist names and Dispatcharr stay unchanged.'),
+            ('include_direct_streams', 'Include custom and M3U fallback streams', True, 'When selected XC providers do not supply a channel, use its selected M3U source or custom direct URL. These URLs keep their original credentials and must work outside your home network.'),
+            ('include_provider_master', 'Include hidden provider master playlists', True, 'Complete native XC live lineups using the export account. Disabled by default; enable under TiviMate Settings → Playlists. Provider names and categories remain unchanged.'),
             ('names', 'Use curated channel names', True, 'Custom groups and channel ordering are always exported.'),
             ('logos', 'Export assigned logos', True, 'Includes entire tidyCH country folders plus exact assigned channel images for the receiver.'),
             ('epg', 'Use assigned EPG sources', True, 'Only sources referenced by the selected channels are included.'),

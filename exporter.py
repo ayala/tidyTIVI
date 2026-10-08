@@ -80,7 +80,7 @@ def export_backups(job, settings):
             manifest={'schema':'tidytivi.bundle.v1','version':job['id'],'created_at':job['created_at'],
                 'backup':'tidytivi.tmb','target_version':'5.3.3','receiver_root':RECEIVER_ROOT,
                 'profiles':[{'name':p['name'],'channels':len(p['channels'])} for p in job['profiles']],
-                'group_mappings':report['group_mappings'],'files':{}}
+                'group_mappings':report['group_mappings'],'provider_masters':report['provider_masters'],'files':{}}
             for path in sorted(staging.rglob('*')):
                 if path.is_file():manifest['files'][path.relative_to(staging).as_posix()]={'bytes':path.stat().st_size,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
             write_private(staging/'manifest.json',json.dumps(manifest,indent=2).encode())
@@ -90,7 +90,7 @@ def export_backups(job, settings):
             (staging/'tidytivi-latest.zip').chmod(0o600)
             result={'path':str(destination/'tidytivi.tmb'),'bundle':str(destination/'tidytivi-latest.zip'),
                 'logo_directory':str(destination/'logos'),'logos':logo_report,'channels':report['channels'],
-                'live_playlists':report['playlists'],'catchup_channels':report['catchup_channels'],'vod':report['vod'],'profiles':manifest['profiles'],'skipped_profiles':[p['name'] for p in job['profiles'] if not p['channels']],'epg_sources':[s['name'] for s in job['epg_sources']],
+                'provider_masters':report['provider_masters'],'live_playlists':report['playlists'],'catchup_channels':report['catchup_channels'],'vod':report['vod'],'profiles':manifest['profiles'],'skipped_profiles':[p['name'] for p in job['profiles'] if not p['channels']],'epg_sources':[s['name'] for s in job['epg_sources']],
                 'sha256':hashlib.sha256(blob).hexdigest()}
         os.rename(staging,destination)
         return [result]

@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.11
+# tidyTIVI 0.5.12
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -16,7 +16,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.11.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.11/tidyTIVI-0.5.11.zip)
+or download [tidyTIVI-0.5.12.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.12/tidyTIVI-0.5.12.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -28,6 +28,25 @@ Python environment. Native export also requires the private provisioning below.
   original curated groups, such as Local, Movies, Sports and Lifestyle. All
   selected profiles are included in one backup.
 - Optional combined mode uses one live playlist with prefixed profile groups.
+- Selected XC providers are preferred over M3U/custom streams. Set **XC priority**
+  per account: lower numbers win; equal priority follows Dispatcharr stream order.
+  Select the non-XC **Include provider** sources you want to use for FAST/custom
+  fallback. **Include custom and M3U fallback streams** is on by default; unselected
+  M3U accounts are never used. Custom streams without an account can be included.
+  Known private/local HTTP addresses are reported as excluded. Other direct URLs
+  must be independently reachable by the receiver; expiring links may need a new
+  export. XC credential overrides never rewrite direct M3U/FAST URLs.
+- **Include hidden provider master playlists** is on by default. Each selected XC
+  account gets a separate **Provider · Master** native live-TV connection with its
+  complete, unfiltered live catalogue and original category names. It starts
+  disabled and excluded from global All channels/favorites. Enable it under
+  **TiviMate → Settings → Playlists** when needed; native updates fetch future
+  provider changes. It uses the final recipient XC credentials. Movies/Series
+  stay in their existing full-provider VOD connections; no duplicate VOD library.
+  This option does not add additional EPG source URLs.
+  **Keep my settings requires companion 0.7.0-rc.5 or later** to add/maintain
+  master playlists. Existing enabled state, favorites and native updates are
+  preserved by that companion; older companions do not import these masters.
 - Direct provider streams; no remote access to Dispatcharr is required.
 - Provider catch-up flags and retention are preserved per selected live stream
   in both the backup and local M3U playlists. Replacement XC accounts use their
@@ -41,7 +60,7 @@ Python environment. Native export also requires the private provisioning below.
   Provider account selection scopes both live TV and VOD.
   An unselected provider is never used as a fallback. Profiles with no usable
   assigned streams are omitted and explicitly reported; a fully empty live
-  selection stops the export. Replacement credentials apply to both live and VOD.
+  selection stops the export. Replacement credentials apply to XC live and VOD; direct FAST/M3U URLs keep their own access details.
 - Only EPG sources assigned to included live channels.
 - Complete tidyCH GitHub logo folders, under `logos/us`, `logos/uk`, `logos/es`,
   etc. Original filenames are preserved. Exact per-channel aliases live in
@@ -191,8 +210,8 @@ Export stages and completion/failure appear automatically as Dispatcharr popups.
 
 ## Preserving receiver history (companion preview)
 
-Plugin 0.5.11 includes stable profile/category identities for the
-[0.7.0-rc.1 companion preview](https://github.com/ayala/tidyTIVI-companion/releases/tag/v0.7.0-rc.1).
+Plugin 0.5.12 includes stable profile/category identities for the
+[0.7.0-rc.5 companion preview](https://github.com/ayala/tidyTIVI-companion/releases/tag/v0.7.0-rc.5).
 The preview updates existing tidyTIVI playlists in place using a fresh receiver
 backup, preserving favorites, watch progress, hidden playlists/groups and
 personal preferences. Dispatcharr curation and the account supplied in the
@@ -201,9 +220,11 @@ unavailable to the exported account retain their stored history but are hidden
 by TiviMate. Different providers' IDs are not interchangeable.
 
 The flow remains export → Dropbox → companion Update → native TiviMate Restore.
-Automatic backup needs one-time Android Accessibility permission. There is no
-manual backup selection on each update. The preview targets English TiviMate
-5.3.3 and existing tidyTIVI profile playlists; ambiguous matches stop the update.
-Physical Firestick accessibility setup is not verified. The stable 0.6.1
-companion still uses replacement restore; installing plugin 0.5.11 alone does
+Choose **Keep my settings** to create a fresh backup in TiviMate under
+**Settings → General → Back up data → Internal shared storage → Save**, then
+return to the companion. It detects that new backup and merges your export.
+**Replace everything** skips this step. No Accessibility permission or root is
+required. The preview targets TiviMate 5.3.3 and existing tidyTIVI profile
+playlists; ambiguous matches stop the update. The stable 0.6.1
+companion still uses replacement restore; installing plugin 0.5.12 alone does
 not add preservation to that older APK.
