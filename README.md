@@ -1,4 +1,4 @@
-# tidyTIVI 0.5.12
+# tidyTIVI 0.5.13
 
 Export one native TiviMate 5.3.3 backup containing all selected Dispatcharr
 profiles. Exporting/restoring requires no Android worker or root. A matching private codec seed and template must be provisioned once before native
@@ -16,7 +16,7 @@ https://raw.githubusercontent.com/ayala/tidyTIVI/main/manifest.json
 ```
 
 Then install tidyTIVI from the repository,
-or download [tidyTIVI-0.5.12.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.12/tidyTIVI-0.5.12.zip)
+or download [tidyTIVI-0.5.13.zip](https://github.com/ayala/tidyTIVI/releases/download/v0.5.13/tidyTIVI-0.5.13.zip)
 and upload it through Plugins. Enable tidyTIVI, select the profiles and provider
 accounts, then preview before exporting. No provider is selected automatically.
 Python 3.9+ and the dependency in `requirements.txt` are required in Dispatcharr’s
@@ -243,7 +243,7 @@ Export stages and completion/failure appear automatically as Dispatcharr popups.
 
 ## Preserving receiver history (companion preview)
 
-Plugin 0.5.12 includes stable profile/category identities for the
+Plugin 0.5.13 includes stable profile/category identities for the
 [0.7.0-rc.5 companion preview](https://github.com/ayala/tidyTIVI-companion/releases/tag/v0.7.0-rc.5).
 The preview updates existing tidyTIVI playlists in place using a fresh receiver
 backup, preserving favorites, watch progress, hidden playlists/groups and
@@ -259,5 +259,18 @@ return to the companion. It detects that new backup and merges your export.
 **Replace everything** skips this step. No Accessibility permission or root is
 required. The preview targets TiviMate 5.3.3 and existing tidyTIVI profile
 playlists; ambiguous matches stop the update. The stable 0.6.1
-companion still uses replacement restore; installing plugin 0.5.12 alone does
+companion still uses replacement restore; installing plugin 0.5.13 alone does
 not add preservation to that older APK.
+
+## Connect with a setup file
+
+Requires companion **0.7.0-rc.6 or later**. After uploading an export to Dropbox,
+open **Docs** on the tidyTIVI card and click **Download setup file**. Send
+`tidytivi-setup.json` to the recipient privately and save it in Files on their phone.
+On the TV, open **Connect**, scan its QR with a phone on the same Wi-Fi, and tap
+**Choose setup file**. Selecting the file connects automatically; no URL paste
+or cloud login is needed. Future updates use the saved link.
+
+The file contains the permanent bundle link, not the backup or logos. Anyone with
+it can download the export, so do not publish it. If you change the bundle link,
+create a new setup file and connect again. Manual link entry remains available.
