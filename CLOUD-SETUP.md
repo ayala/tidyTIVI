@@ -70,18 +70,3 @@ The recommended steps above replace the older workflow. For compatibility,
 **Docs** to access the complete link and finish on the setup page. Alternatively,
 paste the code in **Settings → One-time connection code**, save, and choose
 **Actions → Finish connection**. The code field is not needed when using the setup page.
-
-## Send a setup file instead of copying a link
-
-With plugin 0.5.13 and companion 0.7.0-rc.6 or newer:
-
-1. Finish an export with **Upload after export** enabled.
-2. Open the tidyTIVI card's **Docs** page → **Download setup file**.
-3. Privately send `tidytivi-setup.json` to the recipient and save it in Files on their phone.
-4. On the TV, open **Connect**. Scan the QR with that phone on the same Wi-Fi.
-5. Tap **Choose setup file** and select the file. Connection completes automatically.
-
-The companion remembers the link. Future updates need only **Update TiviMate**.
-The file grants access to your export; do not post it publicly. Manual link entry
-is still available. This does not require another hosted service or a cloud login
-on the recipient's device.
